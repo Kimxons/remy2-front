@@ -1,0 +1,611 @@
+.thread-shell {
+  width: 100%; /* Changed from 80% to 100% */
+  max-width: 1440px; /* Keeps it contained on ultra-wide screens */
+  min-height: auto;
+  margin-inline: auto;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: clamp(12px, 2vh, 24px) clamp(10px, 5%, 40px) clamp(18px, 4vh, 60px);
+  background:
+    radial-gradient(circle at 8% -12%, oklch(from #dc2626 l c h / 0.08), transparent 46%),
+    radial-gradient(circle at 92% -8%, oklch(from #16a34a l c h / 0.06), transparent 42%);
+}
+
+.thread-modern {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: min(1320px, 96vw);
+  min-height: clamp(520px, 64vh, 760px);
+  height: clamp(520px, 72vh, 820px);
+  min-width: 0;
+  margin: 0;
+  background: linear-gradient(
+    180deg,
+    oklch(from #ffffff l c h / 0.96) 0%, 
+    oklch(from #ffffff l c h / 0.9) 100%
+  );
+  border: 1px solid oklch(from #e2e8f0 l c h / 0.72);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.07);
+  overflow: hidden;  
+}
+
+.thread-modern * {
+  box-shadow: none !important;
+}
+
+.thread-modern__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(12px, 1.4vw, 16px) clamp(14px, 1.8vw, 22px);
+  background: linear-gradient(
+    180deg,
+    oklch(from #ffffff l c h / 0.98) 0%,
+    oklch(from #ffffff l c h / 0.93) 100%
+  );
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.thread-modern__header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #dc2626;
+  border: 1px solid #e2e8f0;
+}
+
+.thread-modern__messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(12px, 1.4vw, 20px);
+  background: 
+    linear-gradient(
+      180deg, 
+      oklch(43.145% 0.16753 28.062 / 0.03) 0%, /* Very subtle red tint overlay */
+      transparent 100%
+    ),
+    #f1f1f4; /* A slightly darker, warmer base grey */
+
+  /* NEW: This creates the "slim" conversation lane */
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-job-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(
+    180deg,
+    oklch(from #fff7ed l c h / 0.9) 0%,
+    oklch(from #ffedd5 l c h / 0.86) 100%
+  );
+  border-bottom: 1px solid oklch(from #fed7aa l c h / 0.9);
+}
+
+.thread-job-panel__meta {
+  min-width: 0;
+}
+
+.thread-job-panel__title,
+.thread-job-panel__status {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #7c2d12;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-job-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.thread-job-btn {
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #1f2937;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 7px 10px;
+  transition: all 0.2s ease;
+}
+
+.thread-job-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.thread-job-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.thread-job-btn--start {
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.thread-job-btn--submit {
+  border-color: #dc2626;
+  color: #991b1b;
+}
+
+.thread-job-btn--approve {
+  border-color: #16a34a;
+  color: #166534;
+}
+
+.thread-job-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  text-decoration: none;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+.thread-job-link:hover {
+  background: #dbeafe;
+}
+
+.thread-job-panel__hint {
+  font-size: 0.76rem;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 7px 10px;
+  max-width: 260px;
+}
+
+.thread-job-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 18px;
+}
+
+.thread-job-modal-content {
+  width: min(920px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.thread-rating-modal {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px;
+  max-width: 560px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.1rem;
+  }
+
+  p {
+    margin: 0;
+    color: #475569;
+    font-size: 0.9rem;
+  }
+
+  label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 4px;
+  }
+
+  input,
+  textarea {
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    color: #0f172a;
+    background: #ffffff;
+  }
+
+  textarea {
+    resize: vertical;
+  }
+}
+
+.thread-rating-modal__actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* WhatsApp Updated Message Layout */
+/* WhatsApp Updated Message Layout */
+.thread-message-row {
+  display: flex;
+  width: 100%;
+  margin-bottom: 8px; /* Slightly more breathing room */
+}
+
+.thread-message-row--mine {
+  justify-content: flex-end;
+}
+
+.thread-message-row--theirs {
+  justify-content: flex-start;
+}
+
+.thread-message-content {
+  width: auto;
+  max-width: min(82%, 800px);
+  display: flex;
+  flex-direction: column;
+}
+
+.thread-message-content--mine {
+  align-items: flex-end;
+}
+
+.thread-message-content--theirs {
+  align-items: flex-start;
+}
+
+/* WhatsApp Style Bubbles with Theme Colors */
+.chat-bubble {
+  border: none;
+  font-size: clamp(0.92rem, 0.2vw + 0.88rem, 1rem);
+  line-height: 1.45;
+  padding: 8px 14px;
+  width: fit-content;
+  word-wrap: break-word;
+  position: relative;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* "Mine" Bubble - Themed Red */
+.chat-bubble--mine {
+  /* Using a very soft red tint to keep text readable */
+  background: oklch(from #dc2626 l c h / 0.12); 
+  color: #991b1b; /* Deep red text */
+  border: 1px solid oklch(from #dc2626 l c h / 0.2);
+  /* WhatsApp "Tail" geometry: Sharp top-right */
+  border-radius: 12px 0px 12px 12px;
+}
+
+/* "Theirs" Bubble - Themed White/Grey */
+.chat-bubble--theirs {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e2e8f0;
+  /* WhatsApp "Tail" geometry: Sharp top-left */
+  border-radius: 0px 12px 12px 12px;
+}
+
+/* Optional: Add a subtle timestamp style common in WhatsApp */
+.message-time {
+  font-size: 0.7rem;
+  margin-top: 4px;
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+.thread-modern__attachments {
+  padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 20px);
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(
+    180deg,
+    oklch(from #ffffff l c h / 0.98) 0%,
+    oklch(from #f8fafc l c h / 0.94) 100%
+  );
+  font-size: 0.875rem;
+}
+
+.thread-conversion-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 20px);
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+}
+
+.thread-conversion-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.thread-conversion-banner__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.thread-conversion-banner__title {
+  color: #7c2d12;
+  font-size: clamp(0.84rem, 0.16vw + 0.8rem, 0.95rem);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.thread-conversion-banner__text {
+  color: #9a3412;
+  font-size: clamp(0.75rem, 0.1vw + 0.72rem, 0.84rem);
+  line-height: 1.2;
+}
+
+.thread-conversion-banner__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.thread-conversion-banner__link {
+  font-size: clamp(0.78rem, 0.1vw + 0.75rem, 0.86rem);
+  color: #9a3412;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid #fdba74;
+  border-radius: 9px;
+  padding: 7px 11px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.thread-conversion-banner__link:hover {
+  color: #7c2d12;
+  border-color: #fb923c;
+}
+
+.thread-conversion-banner__cta {
+  font-size: clamp(0.78rem, 0.1vw + 0.75rem, 0.86rem);
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  border: 1px solid #dc2626;
+  border-radius: 9px;
+  padding: 7px 11px;
+  background: #dc2626;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.thread-conversion-banner__cta:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.thread-offer-form-panel {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  background: oklch(from #fef2f2 l c h / 0.5);
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.thread-modern__composer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: clamp(10px, 1.2vw, 16px) clamp(12px, 1.6vw, 20px);
+  background: linear-gradient(
+    180deg,
+    oklch(from #ffffff l c h / 0.98) 0%,
+    oklch(from #ffffff l c h / 0.94) 100%
+  );
+  border-top: 1px solid #e2e8f0;
+}
+
+.thread-send-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: clamp(10px, 0.4vw + 8px, 14px) clamp(14px, 0.8vw + 10px, 22px);
+  border: 1px solid #dc2626;
+  border-radius: 12px;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: clamp(0.9rem, 0.2vw + 0.86rem, 1rem);
+  transition: background-color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.thread-modern__header h2 {
+  font-size: clamp(1rem, 0.45vw + 0.95rem, 1.24rem);
+  letter-spacing: -0.01em;
+}
+
+.thread-modern__header p,
+.thread-modern__header span {
+  font-size: clamp(0.78rem, 0.15vw + 0.74rem, 0.9rem);
+}
+
+.thread-send-cta:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.thread-send-cta:disabled {
+  background: #d1d5db;
+  border-color: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.thread-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(520px, 64vh, 760px);
+  height: clamp(520px, 72vh, 820px);
+  width: min(1320px, 96vw);
+  background: linear-gradient(
+    180deg,
+    oklch(from #ffffff l c h / 0.96) 0%,
+    oklch(from #ffffff l c h / 0.9) 100%
+  );
+  border: 1px solid oklch(from #e2e8f0 l c h / 0.72);
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.07);
+}
+
+@media (max-width: 1200px) {
+  .thread-modern,
+  .thread-state {
+    max-width: min(1100px, 97vw);
+    height: clamp(520px, 70vh, 780px);
+  }
+}
+
+@media (max-width: 992px) {
+  .thread-modern,
+  .thread-state {
+    max-width: 100%;
+    min-height: 520px;
+    height: min(70vh, 720px);
+  }
+}
+
+@media (max-width: 768px) {
+  .thread-shell {
+    min-height: auto;
+    height: auto;
+    padding: 8px 8px 14px;
+  }
+
+  .thread-modern,
+  .thread-state {
+    min-height: 460px;
+    height: min(68vh, 640px);
+    border-radius: 12px;
+  }
+
+  .thread-modern__header,
+  .thread-job-panel,
+  .thread-offer-form-panel,
+  .thread-modern__messages,
+  .thread-modern__attachments,
+  .thread-modern__composer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .thread-job-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .thread-job-panel__actions {
+    justify-content: flex-start;
+  }
+
+  .thread-message-content {
+    max-width: 88%;
+  }
+
+  .thread-conversion-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .thread-conversion-banner__actions {
+    width: 100%;
+  }
+
+  .thread-conversion-banner__link,
+  .thread-conversion-banner__cta {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+
+/* 2. PHONE SIZE (Overrides for the tightest screens) */
+@media (max-width: 480px) {
+  .thread-shell {
+    /* Tight gutters for small screens */
+    padding: 10px 6px; 
+    background: #f1f1f4; 
+  }
+  
+  .thread-modern,
+  .thread-state {
+    /* Use 90% of the screen height so it feels like an app */
+    height: min(90vh, 700px); 
+    border-radius: 8px; 
+    max-width: 100%;
+    border: 1px solid #e2e8f0;
+  }
+
+  .thread-modern__header {
+    /* Added from the second option for better spacing */
+    padding: 10px 12px;
+  }
+
+  .thread-message-content {
+    /* Gives bubbles more width on narrow screens */
+    max-width: 94%; 
+  }
+
+  .thread-send-cta {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .thread-modern__messages {
+    padding: 22px 22px;
+  }
+
+  .chat-bubble {
+    font-size: 1.03rem;
+    line-height: 1.55;
+  }
+
+  .thread-modern__header h2 {
+    font-size: 1.3rem;
+  }
+
+  .thread-send-cta {
+    font-size: 1.02rem;
+    padding: 13px 24px;
+  }
+}

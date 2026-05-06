@@ -1,0 +1,529 @@
+@use "../../styles/tokens" as *;
+
+.about-page {
+  min-height: 100vh;
+  background: var(--background, #ffffff);
+}
+
+// Hero Section
+.about-hero {
+  background: linear-gradient(135deg,
+    var(--primary, #ff0000) 0%,
+    oklch(from var(--primary, #ff0000) calc(l * 0.3) c h) 100%
+  );
+  padding: 5rem 2rem;
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    font-size: 1.25rem;
+    line-height: 1.8;
+    opacity: 0.95;
+    margin: 0;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+}
+
+// Section Container
+.section-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.section-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--foreground, #171717);
+  text-align: center;
+  margin: 0 0 3rem;
+  letter-spacing: -0.02em;
+}
+
+// Mission Section
+.mission-section {
+  padding: 5rem 2rem;
+  background: var(--card, white);
+
+  .mission-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .mission-text {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--muted-foreground, #6b7280);
+    margin: 0 0 1.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// Stats Section
+.stats-section {
+  padding: 4rem 2rem;
+  background: var(--background, #ffffff);
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem;
+  }
+
+  .stat-card {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--card, white);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--primary, #ff0000);
+    }
+
+    .stat-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background: oklch(from var(--primary, #ff0000) l c h / 0.1);
+      color: var(--primary, #ff0000);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+
+      svg {
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--foreground, #171717);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.9375rem;
+      color: var(--muted-foreground, #6b7280);
+      font-weight: 500;
+    }
+  }
+}
+
+// Features Section
+.features-section {
+  padding: 5rem 2rem;
+  background: var(--card, white);
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature-card {
+    padding: 2rem;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+      border-color: var(--primary, #ff0000);
+
+      .feature-icon {
+        background: var(--primary, #ff0000);
+        color: white;
+      }
+    }
+
+    .feature-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      background: oklch(from var(--primary, #ff0000) l c h / 0.1);
+      color: var(--primary, #ff0000);
+      border-radius: 12px;
+      margin-bottom: 1.25rem;
+      transition: all 0.3s ease;
+
+      svg {
+        width: 24px;
+        height: 24px;
+      }
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--foreground, #171717);
+      margin: 0 0 0.75rem;
+    }
+
+    .feature-description {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: var(--muted-foreground, #6b7280);
+      margin: 0;
+    }
+  }
+}
+
+// How It Works Section
+.how-it-works-section {
+  padding: 5rem 2rem;
+  background: var(--background, #ffffff);
+
+  .steps-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 3rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .step-card {
+    position: relative;
+    text-align: center;
+    padding: 2rem 1.5rem;
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background: var(--primary, #ff0000);
+      color: white;
+      border-radius: 50%;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px oklch(from var(--primary, #ff0000) l c h / 0.3);
+    }
+
+    .step-title {
+      font-size: 1.375rem;
+      font-weight: 600;
+      color: var(--foreground, #171717);
+      margin: 0 0 0.75rem;
+    }
+
+    .step-description {
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: var(--muted-foreground, #6b7280);
+      margin: 0;
+    }
+
+    .step-connector {
+      display: none;
+    }
+  }
+}
+
+// Values Section
+.values-section {
+  padding: 5rem 2rem;
+  background: var(--card, white);
+
+  .values-list {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .value-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--background, #ffffff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: var(--primary, #ff0000);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+      .value-icon {
+        color: var(--primary, #ff0000);
+      }
+    }
+
+    .value-icon {
+      flex-shrink: 0;
+      color: var(--muted-foreground, #6b7280);
+      margin-top: 0.25rem;
+      transition: color 0.3s ease;
+    }
+
+    .value-content {
+      flex: 1;
+
+      .value-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--foreground, #171717);
+        margin: 0 0 0.5rem;
+      }
+
+      .value-description {
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        color: var(--muted-foreground, #6b7280);
+        margin: 0;
+      }
+    }
+  }
+}
+
+// CTA Section
+.cta-section {
+  padding: 5rem 2rem;
+  background: linear-gradient(135deg,
+    var(--primary, #ff0000) 0%,
+    oklch(from var(--primary, #ff0000) calc(l * 0.3) c h) 100%
+  );
+  color: white;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .cta-content {
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .cta-description {
+    font-size: 1.125rem;
+    line-height: 1.6;
+    opacity: 0.95;
+    margin: 0 0 2.5rem;
+  }
+
+  .cta-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+
+    .btn-primary,
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.875rem 2rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: white;
+      color: var(--primary, #ff0000);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: white;
+      border: 2px solid white;
+
+      &:hover {
+        background: white;
+        color: var(--primary, #ff0000);
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .about-hero {
+    padding: 4rem 1.5rem;
+
+    .hero-title {
+      font-size: 2.25rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.125rem;
+    }
+  }
+
+  .section-title {
+    font-size: 1.875rem;
+    margin-bottom: 2rem;
+  }
+
+  .mission-section,
+  .features-section,
+  .how-it-works-section,
+  .values-section,
+  .cta-section {
+    padding: 3rem 1.5rem;
+  }
+
+  .stats-section {
+    padding: 3rem 1.5rem;
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .cta-section {
+    .cta-title {
+      font-size: 2rem;
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .about-hero {
+    padding: 3rem 1rem;
+
+    .hero-title {
+      font-size: 1.875rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .mission-section,
+  .features-section,
+  .how-it-works-section,
+  .values-section,
+  .cta-section {
+    padding: 2.5rem 1rem;
+  }
+
+  .stats-section {
+    padding: 2.5rem 1rem;
+
+    .stat-card {
+      padding: 1.5rem 1rem;
+
+      .stat-value {
+        font-size: 2rem;
+      }
+    }
+  }
+
+  .mission-text {
+    font-size: 1rem;
+  }
+
+  .cta-section {
+    .cta-title {
+      font-size: 1.75rem;
+    }
+
+    .cta-description {
+      font-size: 1rem;
+    }
+  }
+}

@@ -1,0 +1,96 @@
+/* Payments/Payment History Page Styles */
+.payments {
+  width: 90%;
+  max-width: 1000px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+
+  h1 {
+    font-size: 2rem;
+    color: var(--color-dark);
+    margin-bottom: 2rem;
+    letter-spacing: -0.5px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background: #f8f9fa;
+      border-bottom: 2px solid var(--color-border);
+
+      th {
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--color-text);
+        font-size: 14px;
+        letter-spacing: 0.3px;
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid var(--color-border);
+        transition: var(--transition);
+
+        &:hover {
+          background: #f8f9fa;
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        td {
+          padding: 16px;
+          color: var(--color-text);
+          font-size: 14px;
+
+          &:nth-child(3) {
+            font-weight: 600;
+
+            /* Status badge styling */
+            &::before {
+              content: '';
+              display: inline-block;
+              width: 8px;
+              height: 8px;
+              border-radius: 50%;
+              margin-right: 8px;
+              vertical-align: middle;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  p {
+    text-align: center;
+    color: var(--color-text-secondary);
+    padding: 2rem;
+    font-size: 15px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    margin: 1.5rem auto;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    table {
+      font-size: 13px;
+
+      th, td {
+        padding: 12px 8px;
+      }
+    }
+  }
+}

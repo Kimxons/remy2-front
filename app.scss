@@ -1,0 +1,254 @@
+/* src/app.scss - Unified Design System Bridge
+   This file imports from globals.css and provides legacy compatibility */
+
+/* Import design tokens from globals.css - now the single source of truth */
+@import './styles/globals.css';
+
+:root {
+  /* Legacy color mappings for backward compatibility with SCSS components */
+  /* All new components should use the tokens from globals.css */
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-dark: var(--foreground);
+  --color-light: var(--background);
+  --color-text: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* Spacing remains the same */
+  --font-main: var(--font-sans);
+
+  /* Shadow and transition variables now reference globals */
+  --shadow: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --transition: var(--transition);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.6;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Unified button styles using design tokens */
+button {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.025em;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+    box-shadow: none;
+
+    &:hover:not(:disabled) {
+      background: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  &.accent {
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+
+    &:hover:not(:disabled) {
+      background: var(--secondary-light);
+    }
+  }
+
+  &.success {
+    background: var(--success);
+    color: var(--success-foreground);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  &.destructive {
+    background: var(--error);
+    color: var(--error-foreground);
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-family: var(--font-main);
+  transition: var(--transition);
+  background: var(--background);
+  color: var(--foreground);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 15%, transparent);
+  }
+
+  &::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--muted);
+  }
+}
+
+/* Dark mode support for inputs */
+.dark {
+  input, select, textarea {
+    background: var(--card);
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--foreground);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 3rem;
+  line-height: 1.1;
+
+  @media (max-width: 768px) {
+    font-size: 2.25rem;
+  }
+}
+
+h2 {
+  font-size: 2.25rem;
+  line-height: 1.2;
+
+  @media (max-width: 768px) {
+    font-size: 1.875rem;
+  }
+}
+
+h3 {
+  font-size: 1.875rem;
+  line-height: 1.3;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+}
+
+.container {
+  width: 90%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 1rem;
+
+  @media (max-width: 768px) {
+    width: 95%;
+    padding: 0 0.75rem;
+  }
+}
+
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border);
+  transition: var(--transition);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+}
+
+.content {
+  flex: 1;
+  padding: 1rem 0;
+}
+
+/* Utility classes for consistent spacing */
+.section {
+  padding: 4rem 0;
+
+  @media (max-width: 768px) {
+    padding: 2.5rem 0;
+  }
+}
+
+/* Link styles */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+
+  &:hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+  }
+}

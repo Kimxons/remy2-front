@@ -1,0 +1,374 @@
+@use '../../styles/tokens.scss' as *;
+
+.home {
+  font-family: $font-sans;
+  padding: 0;
+  overflow-x: hidden;
+  background: $color-background;
+  color: $color-foreground; 
+
+  .section-title {
+    font-size: $text-5xl;
+    color: $color-foreground;
+    margin-bottom: $spacing-3xl;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    text-align: center;
+  }
+
+  .hero {
+    background: linear-gradient(150deg, $color-background 0%, $color-muted 100%);
+    padding: 8rem 4rem;
+    padding-bottom: 12rem;
+    border-bottom-left-radius: 60px;
+    border-bottom-right-radius: 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+    text-align: center;
+    
+    .hero-content {
+      max-width: 850px;
+      margin: 0 auto;
+      
+      .badge {
+        display: inline-block; // Add this to ensure margins are respected correctly
+        padding: $spacing-md $spacing-lg;
+        background: color-mix(in oklch, $color-primary 10%, transparent);
+        color: $color-primary;
+        border-radius: 999px;
+        font-size: $text-sm;
+        font-weight: 700;
+        margin-bottom: $spacing-xl;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border: 1px solid color-mix(in oklch, $color-primary 20%, transparent);
+      }
+
+      .brand {
+        font-size: $text-5xl;
+        font-weight: 900;
+        line-height: 1.1;
+        margin-top: $spacing-md; // Add a small top margin here if the badge margin isn't enough
+        margin-bottom: $spacing-md;
+        color: $color-foreground;
+        letter-spacing: -0.05em;
+
+        .highlight {
+          color: $color-primary;
+          font-style: italic;
+        }
+      }
+
+      .tagline {
+        color: $color-foreground;
+        font-size: $text-2xl;
+        font-weight: 600;
+        margin: 0 auto $spacing-md;
+        max-width: 800px;
+        line-height: 1.5;
+      }
+
+      .description {
+        color: $color-muted-foreground;
+        font-size: $text-lg;
+        font-weight: 400;
+        margin: 0 auto $spacing-2xl;
+        max-width: 700px;
+        line-height: 1.6;
+      }
+  
+      .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: $spacing-lg;
+
+        .btn {
+          padding: $spacing-lg $spacing-2xl;
+          border-radius: 999px;
+          font-weight: 700;
+          text-decoration: none;
+          font-size: $text-base;
+          transition: $transition;
+          box-shadow: $shadow-md;
+          white-space: nowrap;
+
+          &.primary {
+            background: $color-primary;
+            color: $color-primary-foreground;
+
+            &:hover {
+              background: $color-primary-dark;
+              transform: translateY(-3px);
+              box-shadow: $shadow-lg;
+            }
+          }
+
+          &.secondary, &.tertiary {
+            background: $color-card;
+            color: $color-foreground;
+            border: 1px solid $color-border;
+            box-shadow: none;
+
+            &:hover {
+                background: $color-muted;
+                border-color: $color-primary;
+                transform: translateY(-1px);
+                box-shadow: $shadow-sm;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .value-strip {
+    display: flex;
+    justify-content: space-around;
+    gap: $spacing-xl;
+    max-width: 1050px;
+    margin: -6rem auto 6rem;
+    position: relative;
+    z-index: 20;
+    padding: $spacing-xl 4rem;
+    background: $color-card;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-lg;
+    border: 1px solid $color-border;
+
+    .value-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+
+        .value-icon {
+            font-size: $text-2xl;
+            color: $color-primary;
+        }
+
+        .value-text {
+            margin: 0;
+            font-weight: 600;
+            color: $color-foreground;
+            font-size: $text-base;
+        }
+    }
+  }
+
+  .features {
+    padding: 4rem 4rem 8rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: $spacing-xl;
+    }
+
+    .feature-card {
+      background: $color-card;
+      padding: $spacing-2xl;
+      border-radius: $radius-lg;
+      box-shadow: $shadow-sm;
+      text-align: left;
+      transition: $transition;
+      border: 1px solid $color-border;
+
+      &:hover {
+        transform: translateY(-6px);
+        box-shadow: $shadow-lg;
+        border-color: $color-primary;
+      }
+
+      .icon {
+        font-size: $text-4xl;
+        margin-bottom: $spacing-md;
+        display: block;
+        color: $color-primary;
+      }
+
+      h3 {
+        font-size: $text-xl;
+        color: $color-foreground;
+        margin-bottom: $spacing-sm;
+        font-weight: 700;
+      }
+
+      p {
+        color: $color-muted-foreground;
+        font-size: $text-base;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  .client-testimonials {
+    background-color: $color-muted;
+    padding: 6rem 4rem;
+
+    .testimonial-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: $spacing-xl;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .testimonial-card {
+        background: $color-card;
+        padding: $spacing-xl;
+        border-radius: $radius-lg;
+        box-shadow: $shadow-md;
+        border-left: 5px solid $color-primary;
+        text-align: left;
+        transition: $transition;
+
+        &:hover {
+            box-shadow: $shadow-lg;
+            transform: translateY(-2px);
+        }
+
+        .quote {
+            font-style: italic;
+            font-size: $text-base;
+            line-height: 1.6;
+            color: $color-foreground;
+            margin-bottom: $spacing-md;
+        }
+
+        .author {
+            font-weight: 600;
+            color: $color-primary;
+            font-size: $text-sm;
+        }
+    }
+  }
+
+  .final-cta {
+    padding: 6rem 4rem;
+    text-align: center;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    .cta-content {
+        background: $color-card;
+        padding: $spacing-2xl;
+        border-radius: $radius-lg;
+        border: 2px solid $color-primary;
+        box-shadow: $shadow-lg;
+
+        h2 {
+            font-size: $text-4xl;
+            font-weight: 800;
+            color: $color-foreground;
+            margin-bottom: $spacing-md;
+        }
+
+        p {
+            font-size: $text-lg;
+            color: $color-muted-foreground;
+            margin-bottom: $spacing-xl;
+        }
+
+        .large-cta-btn {
+            padding: $spacing-lg $spacing-2xl;
+            font-size: $text-lg;
+            box-shadow: $shadow-lg;
+        }
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .hero {
+        padding: 6rem 3rem;
+        padding-bottom: 10rem;
+        .brand {
+            font-size: 3.8rem;
+        }
+    }
+    .value-strip {
+        margin: -5rem auto 5rem;
+        padding: 1.5rem 2rem;
+    }
+    .features {
+        padding: 0 3rem 6rem;
+    }
+    .client-testimonials {
+        padding: 5rem 3rem;
+    }
+    .final-cta {
+        padding: 5rem 3rem;
+    }
+    .section-title {
+        font-size: 2.5rem;
+        margin-bottom: 3rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .hero {
+        padding: 4rem 1rem 6rem;
+        .brand {
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+        }
+        .tagline {
+            font-size: 1.2rem;
+        }
+        .description {
+            font-size: 1rem;
+            margin-bottom: 2rem;
+        }
+        .cta-buttons {
+            flex-direction: column;
+            gap: 1rem;
+            .btn {
+                width: 100%;
+                padding: 1rem 2.5rem;
+            }
+        }
+    }
+
+    .value-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: $spacing-md;
+        margin: -4rem auto 2.5rem;
+        .value-item {
+            width: 100%;
+            padding: $spacing-sm 0;
+            border-bottom: 1px dashed color-mix(in oklch, $color-primary 20%, transparent);
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+    }
+
+    .features {
+        padding: 0 1rem 4rem;
+    }
+
+    .client-testimonials {
+        padding: 3rem 1rem;
+    }
+
+    .final-cta {
+        padding: 3rem 1rem;
+        .cta-content {
+            padding: 2rem 1rem;
+            h2 {
+                font-size: 1.6rem;
+            }
+            p {
+                font-size: 1rem;
+                margin-bottom: 1.5rem;
+            }
+        }
+    }
+    .section-title {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
+    }
+  }
+}

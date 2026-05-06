@@ -1,0 +1,399 @@
+@use '../styles/tokens.scss' as *;
+
+.submission-form-container {
+  background: $color-card;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: $shadow-lg;
+  animation: slideIn 0.3s ease-out;
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .submission-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-xl;
+    border-bottom: 1px solid $color-border;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+
+      .title-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+        border-radius: $radius-md;
+        color: $color-primary-foreground;
+        box-shadow: $shadow-md;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      h3 {
+        font-size: $text-xl;
+        font-weight: 700;
+        color: $color-foreground;
+        margin: 0;
+      }
+    }
+
+    .btn-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: 1px solid $color-border;
+      border-radius: $radius-sm;
+      color: $color-muted-foreground;
+      cursor: pointer;
+      transition: $transition-fast;
+
+      &:hover:not(:disabled) {
+        background: $color-error;
+        border-color: $color-error;
+        color: $color-error-foreground;
+        transform: rotate(90deg);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .submission-form {
+    padding: $spacing-xl;
+
+    .form-intro {
+      margin-bottom: $spacing-xl;
+      padding: $spacing-md;
+      background: oklch(from $color-primary l c h / 0.05);
+      border-left: 4px solid $color-primary;
+      border-radius: $radius-sm;
+
+      p {
+        margin: 0;
+        font-size: $text-sm;
+        color: $color-foreground;
+        line-height: 1.6;
+      }
+    }
+
+    .form-group {
+      margin-bottom: $spacing-xl;
+
+      label {
+        display: block;
+        font-size: $text-sm;
+        font-weight: 600;
+        color: $color-foreground;
+        margin-bottom: $spacing-sm;
+
+        .required {
+          color: $color-error;
+          margin-left: $spacing-xs;
+        }
+      }
+
+      textarea,
+      > input[type="file"] {
+        width: 100%;
+        border: 1px solid $color-border;
+        border-radius: $radius-sm;
+        background: $color-card;
+        color: $color-foreground;
+        font-size: $text-sm;
+      }
+
+      textarea {
+        min-height: 110px;
+        padding: $spacing-md;
+        resize: vertical;
+      }
+
+      > input[type="file"] {
+        padding: $spacing-sm;
+      }
+
+      .file-upload-area {
+        position: relative;
+        border: 2px dashed $color-border;
+        border-radius: $radius-md;
+        background: $color-muted;
+        transition: $transition-fast;
+
+        &.drag-active {
+          border-color: $color-primary;
+          background: oklch(from $color-primary l c h / 0.05);
+        }
+
+        &.error {
+          border-color: $color-error;
+        }
+
+        &.has-file {
+          border-style: solid;
+          border-color: $color-success;
+          background: oklch(from $color-success l c h / 0.05);
+        }
+
+        .file-input {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          opacity: 0;
+          overflow: hidden;
+        }
+
+        .file-upload-label {
+          display: block;
+          cursor: pointer;
+          padding: $spacing-xl;
+
+          .file-upload-prompt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: $spacing-md;
+            text-align: center;
+
+            svg {
+              color: $color-muted-foreground;
+              transition: $transition-fast;
+            }
+
+            .upload-text {
+              font-size: $text-sm;
+              color: $color-foreground;
+
+              strong {
+                color: $color-primary;
+                font-weight: 700;
+              }
+            }
+
+            .upload-hint {
+              font-size: $text-xs;
+              color: $color-muted-foreground;
+            }
+          }
+
+          &:hover .file-upload-prompt svg {
+            color: $color-primary;
+            transform: translateY(-4px);
+          }
+
+          .file-selected {
+            display: flex;
+            align-items: center;
+            gap: $spacing-md;
+            padding: $spacing-md;
+            background: $color-card;
+            border-radius: $radius-sm;
+
+            .file-icon {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 48px;
+              height: 48px;
+              background: oklch(from $color-success l c h / 0.15);
+              border-radius: $radius-sm;
+              color: $color-success;
+              flex-shrink: 0;
+
+              svg {
+                width: 24px;
+                height: 24px;
+              }
+            }
+
+            .file-info {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              gap: $spacing-xs;
+              min-width: 0;
+
+              .file-name {
+                font-size: $text-sm;
+                font-weight: 600;
+                color: $color-foreground;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .file-size {
+                font-size: $text-xs;
+                color: $color-muted-foreground;
+              }
+            }
+
+            .btn-remove {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 32px;
+              height: 32px;
+              background: transparent;
+              border: 1px solid $color-border;
+              border-radius: $radius-sm;
+              color: $color-muted-foreground;
+              cursor: pointer;
+              transition: $transition-fast;
+              flex-shrink: 0;
+
+              &:hover:not(:disabled) {
+                background: $color-error;
+                border-color: $color-error;
+                color: $color-error-foreground;
+              }
+
+              &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+              }
+            }
+          }
+        }
+      }
+
+      .error-message {
+        display: block;
+        margin-top: $spacing-sm;
+        font-size: $text-xs;
+        color: $color-error;
+        font-weight: 600;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      gap: $spacing-md;
+      margin-top: $spacing-2xl;
+      padding-top: $spacing-xl;
+      border-top: 1px solid $color-border;
+
+      .btn-submit,
+      .btn-cancel {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: $spacing-sm;
+        padding: $spacing-md $spacing-xl;
+        border: none;
+        border-radius: $radius-md;
+        font-size: $text-sm;
+        font-weight: 700;
+        cursor: pointer;
+        transition: $transition-fast;
+        box-shadow: $shadow-sm;
+
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid currentColor;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+      }
+
+      .btn-submit {
+        background: linear-gradient(135deg, $color-success 0%, oklch(from $color-success calc(l - 0.1) c h) 100%);
+        color: $color-success-foreground;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: $shadow-md;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
+
+      .btn-cancel {
+        background: transparent;
+        color: $color-muted-foreground;
+        border: 2px solid $color-border;
+        box-shadow: none;
+
+        &:hover:not(:disabled) {
+          background: $color-muted;
+          border-color: $color-foreground;
+          color: $color-foreground;
+          transform: translateY(-2px);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
+    }
+  }
+
+  @media (max-width: $breakpoint-md) {
+    .submission-form-header {
+      padding: $spacing-lg;
+    }
+
+    .submission-form {
+      padding: $spacing-lg;
+
+      .form-actions {
+        flex-direction: column;
+
+        .btn-submit,
+        .btn-cancel {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

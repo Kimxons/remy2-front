@@ -1,0 +1,470 @@
+@use '../../styles/tokens.scss' as *;
+
+.sent-offers-page {
+  min-height: 100vh;
+  background: $color-background;
+  padding: $spacing-lg $spacing-xl;
+
+  @media (max-width: $breakpoint-md) {
+    padding: $spacing-md;
+  }
+
+  // ===== Header Section =====
+  .sent-offers-header {
+    margin-bottom: $spacing-2xl;
+
+    .header-content {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-md;
+
+      .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: $spacing-xs;
+        padding: $spacing-sm $spacing-md;
+        background: transparent;
+        border: 1px solid $color-border;
+        border-radius: $radius-md;
+        color: $color-foreground;
+        font-size: $text-sm;
+        font-weight: 500;
+        cursor: pointer;
+        transition: $transition-fast;
+        width: fit-content;
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover {
+          background: $color-accent;
+          border-color: $color-primary;
+          color: $color-primary;
+        }
+      }
+
+      .header-text {
+        .page-title {
+          font-size: $text-4xl;
+          font-weight: 700;
+          color: $color-foreground;
+          margin: 0 0 $spacing-xs 0;
+
+          @media (max-width: $breakpoint-md) {
+            font-size: $text-3xl;
+          }
+        }
+
+        .page-subtitle {
+          font-size: $text-base;
+          color: $color-muted-foreground;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  // ===== Statistics Section =====
+  .stats-section {
+    margin-bottom: $spacing-2xl;
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: $spacing-md;
+
+      @media (max-width: $breakpoint-sm) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-card {
+        background: $color-card;
+        border: 1px solid $color-border;
+        border-radius: $radius-lg;
+        padding: $spacing-lg;
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-sm;
+        transition: $transition-fast;
+
+        &:hover {
+          border-color: $color-primary;
+          box-shadow: $shadow-md;
+          transform: translateY(-2px);
+        }
+
+        .stat-label {
+          font-size: $text-sm;
+          color: $color-muted-foreground;
+          font-weight: 500;
+        }
+
+        .stat-value {
+          font-size: $text-2xl;
+          font-weight: 700;
+          color: $color-foreground;
+
+          @media (max-width: $breakpoint-sm) {
+            font-size: $text-xl;
+          }
+        }
+
+        &.pending {
+          border-color: $color-warning;
+          .stat-value {
+            color: $color-warning;
+          }
+        }
+
+        &.accepted {
+          border-color: $color-success;
+          .stat-value {
+            color: $color-success;
+          }
+        }
+
+        &.rejected {
+          border-color: $color-error;
+          .stat-value {
+            color: $color-error;
+          }
+        }
+
+        &.value {
+          border-color: $color-primary;
+          .stat-value {
+            color: $color-primary;
+            font-size: $text-xl;
+
+            @media (max-width: $breakpoint-sm) {
+              font-size: $text-lg;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ===== Controls Section =====
+  .controls-section {
+    display: flex;
+    gap: $spacing-lg;
+    margin-bottom: $spacing-xl;
+    flex-wrap: wrap;
+
+    @media (max-width: $breakpoint-sm) {
+      flex-direction: column;
+      gap: $spacing-md;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+
+      .filter-label {
+        font-size: $text-sm;
+        font-weight: 600;
+        color: $color-foreground;
+      }
+
+      .filter-select {
+        padding: $spacing-sm $spacing-md;
+        border: 1px solid $color-border;
+        border-radius: $radius-md;
+        background: $color-background;
+        color: $color-foreground;
+        font-size: $text-sm;
+        cursor: pointer;
+        transition: $transition-fast;
+
+        &:hover {
+          border-color: $color-primary;
+        }
+
+        &:focus {
+          outline: none;
+          border-color: $color-primary;
+          box-shadow: 0 0 0 3px oklch(from $color-primary l c h / 0.1);
+        }
+      }
+    }
+  }
+
+  // ===== Offers Section =====
+  .offers-section {
+    .offers-list {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-xl;
+
+      .offer-item {
+        background: $color-card;
+        border: 1px solid $color-border;
+        border-radius: $radius-lg;
+        padding: $spacing-xl;
+        transition: $transition-fast;
+
+        &:hover {
+          box-shadow: $shadow-lg;
+          border-color: $color-primary;
+        }
+
+        .offer-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: $spacing-lg;
+          flex-wrap: wrap;
+          gap: $spacing-md;
+
+          .recipient-info {
+            display: flex;
+            align-items: center;
+            gap: $spacing-sm;
+            flex-wrap: wrap;
+
+            .recipient-label {
+              font-size: $text-sm;
+              color: $color-muted-foreground;
+            }
+
+            .recipient-name {
+              font-size: $text-base;
+              font-weight: 600;
+              color: $color-foreground;
+            }
+
+            .offer-date {
+              font-size: $text-xs;
+              color: $color-muted-foreground;
+              padding-left: $spacing-sm;
+              border-left: 1px solid $color-border;
+            }
+          }
+
+          .offer-actions {
+            display: flex;
+            align-items: center;
+            gap: $spacing-md;
+
+            .status-badge {
+              padding: $spacing-xs $spacing-md;
+              border-radius: $radius-sm;
+              font-size: $text-xs;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+
+              &.status-pending {
+                background: oklch(from $color-warning l c h / 0.15);
+                color: $color-warning;
+                border: 1px solid $color-warning;
+              }
+
+              &.status-accepted {
+                background: oklch(from $color-success l c h / 0.15);
+                color: $color-success;
+                border: 1px solid $color-success;
+              }
+
+              &.status-rejected {
+                background: oklch(from $color-error l c h / 0.15);
+                color: $color-error;
+                border: 1px solid $color-error;
+              }
+            }
+
+            .view-thread-btn {
+              display: inline-flex;
+              align-items: center;
+              gap: $spacing-xs;
+              padding: $spacing-sm $spacing-md;
+              background: transparent;
+              border: 1px solid $color-border;
+              border-radius: $radius-md;
+              color: $color-primary;
+              font-size: $text-sm;
+              font-weight: 500;
+              text-decoration: none;
+              cursor: pointer;
+              transition: $transition-fast;
+
+              svg {
+                width: 16px;
+                height: 16px;
+              }
+
+              &:hover {
+                background: $color-primary;
+                color: $color-primary-foreground;
+                border-color: $color-primary;
+              }
+            }
+          }
+        }
+
+        .offer-status-info {
+          display: flex;
+          align-items: center;
+          gap: $spacing-sm;
+          margin-top: $spacing-lg;
+          padding: $spacing-md;
+          border-radius: $radius-md;
+          font-size: $text-sm;
+          font-weight: 500;
+
+          svg {
+            width: 18px;
+            height: 18px;
+          }
+
+          &.pending-info {
+            background: oklch(from $color-warning l c h / 0.1);
+            color: $color-warning;
+            border: 1px solid oklch(from $color-warning l c h / 0.3);
+
+            svg {
+              stroke: $color-warning;
+            }
+          }
+
+          &.accepted-info {
+            background: oklch(from $color-success l c h / 0.1);
+            color: $color-success;
+            border: 1px solid oklch(from $color-success l c h / 0.3);
+
+            svg {
+              stroke: $color-success;
+            }
+          }
+
+          &.rejected-info {
+            background: oklch(from $color-error l c h / 0.1);
+            color: $color-error;
+            border: 1px solid oklch(from $color-error l c h / 0.3);
+
+            svg {
+              stroke: $color-error;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ===== Error State =====
+  .sent-offers-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: $spacing-xl;
+
+    .retry-btn {
+      padding: $spacing-md $spacing-2xl;
+      background: $color-primary;
+      color: $color-primary-foreground;
+      border: none;
+      border-radius: $radius-md;
+      font-size: $text-base;
+      font-weight: 600;
+      cursor: pointer;
+      transition: $transition-fast;
+
+      &:hover {
+        background: $color-primary-dark;
+        transform: translateY(-2px);
+        box-shadow: $shadow-md;
+      }
+    }
+  }
+}
+
+// Dark mode support
+.dark {
+  .sent-offers-page {
+    background: oklch(0.145 0.008 27.325);
+
+    .sent-offers-header {
+      .back-btn {
+        border-color: oklch(0.285 0.02 27.325);
+        color: oklch(0.97 0.004 27.325);
+
+        &:hover {
+          background: oklch(0.235 0.015 27.325);
+        }
+      }
+
+      .page-title {
+        color: oklch(0.97 0.004 27.325);
+      }
+
+      .page-subtitle {
+        color: oklch(0.708 0.006 27.325);
+      }
+    }
+
+    .stats-section {
+      .stat-card {
+        background: oklch(0.195 0.012 27.325);
+        border-color: oklch(0.285 0.02 27.325);
+
+        .stat-label {
+          color: oklch(0.708 0.006 27.325);
+        }
+
+        .stat-value {
+          color: oklch(0.97 0.004 27.325);
+        }
+      }
+    }
+
+    .offers-section {
+      .offer-item {
+        background: oklch(0.195 0.012 27.325);
+        border-color: oklch(0.285 0.02 27.325);
+
+        .offer-header {
+          .recipient-info {
+            .recipient-label {
+              color: oklch(0.708 0.006 27.325);
+            }
+
+            .recipient-name {
+              color: oklch(0.97 0.004 27.325);
+            }
+
+            .offer-date {
+              color: oklch(0.708 0.006 27.325);
+              border-left-color: oklch(0.285 0.02 27.325);
+            }
+          }
+
+          .offer-actions {
+            .view-thread-btn {
+              border-color: oklch(0.285 0.02 27.325);
+            }
+          }
+        }
+      }
+    }
+
+    .controls-section {
+      .filter-group {
+        .filter-label {
+          color: oklch(0.97 0.004 27.325);
+        }
+
+        .filter-select {
+          background: oklch(0.195 0.012 27.325);
+          border-color: oklch(0.285 0.02 27.325);
+          color: oklch(0.97 0.004 27.325);
+        }
+      }
+    }
+  }
+}

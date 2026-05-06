@@ -1,0 +1,391 @@
+@use '../styles/tokens.scss' as *;
+
+.offer-form-container {
+  background: $color-card;
+  border: 2px solid $color-primary;
+  border-radius: $radius-lg;
+  box-shadow: none;
+  margin: $spacing-lg 0;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+
+  .offer-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-lg;
+    background: oklch(from $color-primary l c h / 0.05);
+    border-bottom: 1px solid $color-border;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+
+      .title-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: $color-primary;
+        color: $color-primary-foreground;
+        border-radius: $radius-md;
+
+        svg {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      h3 {
+        font-size: $text-lg;
+        font-weight: 700;
+        color: $color-foreground;
+        margin: 0;
+      }
+
+      .header-subtitle {
+        margin: 2px 0 0;
+        font-size: $text-xs;
+        color: $color-muted-foreground;
+        font-weight: 500;
+      }
+    }
+
+    .btn-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      border-radius: $radius-sm;
+      color: $color-muted-foreground;
+      cursor: pointer;
+      transition: $transition-fast;
+
+      &:hover:not(:disabled) {
+        background: $color-muted;
+        color: $color-foreground;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .offer-form {
+    padding: $spacing-xl;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+
+    .offer-preview-bar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: $spacing-md;
+      padding: $spacing-md $spacing-lg;
+      border: 1px solid $color-border;
+      border-radius: $radius-md;
+      background: $color-muted;
+
+      .preview-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .preview-label {
+        font-size: $text-xs;
+        color: $color-muted-foreground;
+        font-weight: 600;
+      }
+
+      .preview-value {
+        font-size: $text-sm;
+        color: $color-foreground;
+        font-weight: 700;
+      }
+
+      .preview-divider {
+        width: 1px;
+        height: 30px;
+        background: $color-border;
+      }
+
+      @media (max-width: $breakpoint-md) {
+        grid-template-columns: 1fr;
+        gap: $spacing-sm;
+
+        .preview-divider {
+          display: none;
+        }
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+
+      label {
+        font-size: $text-sm;
+        font-weight: 600;
+        color: $color-foreground;
+
+        .required {
+          color: $color-error;
+          margin-left: 2px;
+        }
+
+        .optional {
+          font-size: $text-xs;
+          font-weight: 400;
+          color: $color-muted-foreground;
+          margin-left: $spacing-xs;
+        }
+      }
+
+      .form-input,
+      .form-textarea {
+        padding: $spacing-md;
+        background: $color-background;
+        border: 2px solid $color-border;
+        border-radius: $radius-md;
+        font-size: $text-sm;
+        color: $color-foreground;
+        transition: $transition-fast;
+        font-family: $font-sans;
+
+        &:focus {
+          outline: none;
+          border-color: $color-primary;
+          box-shadow: 0 0 0 3px oklch(from $color-primary l c h / 0.1);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          background: $color-muted;
+        }
+
+        &.error {
+          border-color: $color-error;
+
+          &:focus {
+            box-shadow: 0 0 0 3px oklch(from $color-error l c h / 0.1);
+          }
+        }
+
+        &::placeholder {
+          color: $color-muted-foreground;
+        }
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+        line-height: 1.6;
+      }
+
+      .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+
+        .input-icon {
+          position: absolute;
+          left: $spacing-md;
+          font-size: $text-sm;
+          font-weight: 700;
+          color: $color-muted-foreground;
+          pointer-events: none;
+        }
+
+        .form-input.with-icon {
+          padding-left: calc($spacing-md + 40px);
+        }
+
+        .input-suffix {
+          position: absolute;
+          right: $spacing-md;
+          font-size: $text-sm;
+          font-weight: 600;
+          color: $color-muted-foreground;
+          pointer-events: none;
+        }
+      }
+
+      .error-message {
+        font-size: $text-xs;
+        color: $color-error;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+
+        &::before {
+          content: "⚠";
+        }
+      }
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: $spacing-lg;
+
+      @media (max-width: $breakpoint-md) {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      gap: $spacing-md;
+      margin-top: $spacing-md;
+      padding-top: $spacing-lg;
+      border-top: 1px solid $color-border;
+
+      .btn-submit,
+      .btn-cancel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: $spacing-sm;
+        padding: $spacing-md $spacing-xl;
+        border-radius: $radius-md;
+        font-size: $text-sm;
+        font-weight: 700;
+        cursor: pointer;
+        transition: $transition-fast;
+        border: none;
+
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid currentColor;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+      }
+
+      .btn-submit {
+        flex: 1;
+        background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+        color: $color-primary-foreground;
+        box-shadow: none;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: none;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
+
+      .btn-cancel {
+        background: transparent;
+        color: $color-muted-foreground;
+        border: 2px solid $color-border;
+
+        &:hover:not(:disabled) {
+          background: $color-muted;
+          color: $color-foreground;
+          border-color: $color-foreground;
+        }
+      }
+    }
+  }
+}
+
+.form-group--attachments {
+  .form-file-input {
+    display: none;
+  }
+
+  .file-upload-cta {
+    border: 2px dashed $color-border;
+    border-radius: $radius-md;
+    padding: $spacing-md $spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    transition: $transition-fast;
+    background: $color-background;
+
+    &:hover {
+      border-color: $color-primary;
+      background: oklch(from $color-primary l c h / 0.04);
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .file-upload-cta__title {
+      font-size: $text-sm;
+      font-weight: 700;
+      color: $color-foreground;
+    }
+
+    .file-upload-cta__meta {
+      font-size: $text-xs;
+      color: $color-muted-foreground;
+    }
+  }
+
+  .attachments-preview {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    margin-top: $spacing-sm;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,33 @@
+.slide {
+  display: flex;
+  justify-content: center;
+  padding: 100px 0px;
+  
+  .container {
+    width: 1400px;
+    position: relative;
+  }
+
+  .slide__track {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 999px;
+    }
+  }
+
+  .slide__item {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}

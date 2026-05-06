@@ -1,0 +1,248 @@
+.toast-container {
+  position: fixed;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-width: 420px;
+  width: calc(100% - 2 * var(--spacing-lg));
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    left: var(--spacing-md);
+    width: auto;
+    max-width: none;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-2xl);
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  animation: toastSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: currentColor;
+  }
+
+  &--exit {
+    animation: toastSlideOut 0.3s ease-out forwards;
+  }
+
+  // Type variants
+  &--success {
+    border-left-color: var(--success);
+    color: var(--success);
+
+    &::before {
+      background: var(--success);
+    }
+
+    .toast__icon-wrapper {
+      background: rgba(var(--success) / 0.1);
+      color: var(--success);
+    }
+  }
+
+  &--error {
+    border-left-color: var(--error);
+    color: var(--error);
+
+    &::before {
+      background: var(--error);
+    }
+
+    .toast__icon-wrapper {
+      background: rgba(var(--error) / 0.1);
+      color: var(--error);
+    }
+  }
+
+  &--warning {
+    border-left-color: var(--warning);
+    color: var(--warning);
+
+    &::before {
+      background: var(--warning);
+    }
+
+    .toast__icon-wrapper {
+      background: rgba(var(--warning) / 0.1);
+      color: var(--warning);
+    }
+  }
+
+  &--info {
+    border-left-color: var(--info);
+    color: var(--info);
+
+    &::before {
+      background: var(--info);
+    }
+
+    .toast__icon-wrapper {
+      background: rgba(var(--info) / 0.1);
+      color: var(--info);
+    }
+  }
+
+  &__icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+    transition: var(--transition-fast);
+  }
+
+  &__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  &__title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+    letter-spacing: -0.01em;
+  }
+
+  &__message {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+
+    &:hover {
+      background: var(--muted);
+      color: var(--text-primary);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &__progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: currentColor;
+    opacity: 0.3;
+    transform-origin: left;
+    animation: toastProgress linear forwards;
+  }
+
+  &:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+
+    .toast__progress {
+      animation-play-state: paused;
+    }
+  }
+}
+
+// Animations
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+// Mobile optimizations
+@media (max-width: 768px) {
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes toastSlideOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-120%);
+    }
+  }
+}

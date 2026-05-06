@@ -1,0 +1,288 @@
+@use '../styles/tokens.scss' as *;
+
+.offer-card {
+  background: $color-card;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  margin: $spacing-lg 0;
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.4s ease-out;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, $color-primary, var(--primary-light));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: var(--transition-smooth);
+  }
+
+  &:hover {
+    border-color: $color-primary;
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-4px);
+
+    &::before {
+      transform: scaleX(1);
+    }
+  }
+}
+
+.offer-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $color-border;
+
+  .offer-title-section {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+
+    .offer-label {
+      font-size: $text-base;
+      font-weight: 700;
+      color: $color-foreground;
+    }
+  }
+
+  .status-badge {
+    padding: $spacing-xs $spacing-md;
+    border-radius: $radius-sm;
+    font-size: $text-xs;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &.status-accepted {
+      background: oklch(from $color-success l c h / 0.1);
+      color: $color-success;
+      border: 1px solid oklch(from $color-success l c h / 0.2);
+    }
+
+    &.status-rejected {
+      background: oklch(from $color-error l c h / 0.1);
+      color: $color-error;
+      border: 1px solid oklch(from $color-error l c h / 0.2);
+    }
+
+    &.status-pending {
+      background: oklch(from $color-warning l c h / 0.1);
+      color: $color-warning;
+      border: 1px solid oklch(from $color-warning l c h / 0.2);
+    }
+  }
+}
+
+.offer-card-body {
+  margin-bottom: $spacing-lg;
+
+  .offer-title {
+    font-size: $text-lg;
+    font-weight: 700;
+    margin: $spacing-xs 0 $spacing-lg;
+  }
+
+  .offer-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+
+    .metric-item {
+      background: $color-muted;
+      padding: $spacing-md;
+      border-radius: $radius-lg;
+      border: 1px solid $color-border;
+
+      label {
+        font-size: $text-xs;
+        color: $color-muted-foreground;
+        text-transform: uppercase;
+      }
+
+      .metric-value {
+        font-size: $text-lg;
+        font-weight: 800;
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+.offer-job-created {
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background: oklch(from $color-success l c h / 0.03);
+  border: 1px solid oklch(from $color-success l c h / 0.1);
+  border-radius: $radius-lg;
+
+  .payment-warning {
+    display: flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-md;
+    background: oklch(from $color-warning l c h / 0.08);
+    border: 1px solid oklch(from $color-warning l c h / 0.2);
+    border-radius: $radius-md;
+    margin: $spacing-md 0;
+
+    span {
+      font-size: $text-sm;
+      font-weight: 600;
+      color: $color-warning;
+    }
+  }
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* =========================
+   BUTTON SYSTEM (FIXED)
+========================= */
+
+.btn-action-base {
+  flex: 1; /* FIX: proper side-by-side layout */
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: $radius-md;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* FIX: alias so JSX works cleanly */
+.btn-action {
+  @extend .btn-action-base;
+}
+
+.btn-pay-now,
+.btn-auth-submit {
+  @extend .btn-action-base;
+  background: $color-primary;
+  color: white;
+}
+
+.btn-accept {
+  @extend .btn-action-base;
+  background: $color-success;
+  color: white;
+}
+
+.btn-reject {
+  @extend .btn-action-base;
+  background: transparent;
+  border: 2px solid $color-error;
+  color: $color-error;
+
+  &:hover:not(:disabled) {
+    background: oklch(from $color-error l c h / 0.05);
+  }
+}
+
+.offer-card-actions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+}
+
+/* =========================
+   FORM
+========================= */
+
+.guest-auth-form {
+  background: white;
+  border: 1px solid $color-border;
+  padding: $spacing-lg;
+  border-radius: $radius-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  box-shadow: $shadow-md;
+
+  .auth-row {
+    display: flex;
+    justify-content: space-between;
+
+    p {
+      font-weight: 700;
+      font-size: $text-sm;
+      color: $color-foreground;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: $color-muted-foreground;
+    }
+  }
+
+  input {
+    padding: $spacing-md;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    font-size: $text-sm;
+
+    &:focus {
+      border-color: $color-primary;
+      outline: none;
+    }
+  }
+
+  .auth-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-sm;
+  }
+
+  .auth-error {
+    color: $color-error;
+    font-size: $text-xs;
+    background: oklch(from $color-error l c h / 0.05);
+    padding: $spacing-xs;
+    border-radius: 4px;
+    text-align: center;
+  }
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

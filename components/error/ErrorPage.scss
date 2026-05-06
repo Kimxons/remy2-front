@@ -1,0 +1,30 @@
+.error-page {
+  text-align: center;
+  padding: 4rem;
+  color: #333;
+
+  h1 {
+    font-size: 3rem;
+    color: #ff4d4f;
+  }
+
+  .error-details {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #777;
+  }
+
+  .btn {
+    margin-top: 2rem;
+    padding: 0.75rem 1.5rem;
+    background: #1dbf73;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: 0.3s;
+
+    &:hover {
+      background: #17a866;
+    }
+  }
+}
