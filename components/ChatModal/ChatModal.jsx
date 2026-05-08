@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import httpClient from "@/api/httpClient";
 import guestSessionService from "@/services/guestSessionService";
 import chatApi from "@/api/chatApi";
@@ -217,10 +218,7 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
         try {
             const token = getToken();
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
-            const keyToUse = explicitKey || sessionKey;
-            const url = userType === "guest"
-                ? `/chat/threads/${thread.id}/messages/?session_key=${keyToUse}`
-                : `/chat/threads/${thread.id}/messages/`;
+            const url = `/chat/threads/${thread.id}/messages/`;
             const res = await httpClient.get(url, { headers });
             const rawMsgs = res?.data?.messages || res?.data?.results || res?.data || [];
             setMessages((rawMsgs || []).map(normalizeMessage).filter(Boolean));
@@ -234,7 +232,7 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
     const createOrFetchGuestThread = useCallback(async () => {
         if (!freelancerUsername) return null;
         try {
-            const res = await chatApi.createThread(freelancerUsername, sessionKey);
+            const res = await chatApi.createThread(freelancerUsername);
             const normalizedNewThread = normalizeThreadsFromResponse([res.thread || res], userType, currentUsername)[0];
             const newKey = res.guest_session_key;
             setThreads((prev) => {
@@ -291,7 +289,7 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
                     }
                     setThreads([]); setThreadsLoading(false); return [];
                 }
-                res = await httpClient.get(`/chat/guest-threads/?session_key=${keyToUse}`);
+                res = await httpClient.get(`/chat/guest-threads/`);
                 raw = res?.data?.results || res?.data?.threads || res?.data || [];
                 if (Array.isArray(raw)) {
                     raw.forEach((thread) => {
@@ -361,13 +359,11 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
         if (selectedThread.id) {
             wsUrl = buildThreadWebSocketUrl({
                 threadId: selectedThread.id,
-                sessionKey: userType === "guest" ? keyToUse : null,
                 token: userType === "guest" ? null : token,
             });
         } else if (userType === "guest" && selectedThread.freelancer_id) {
             wsUrl = buildNewThreadWebSocketUrl({
                 freelancerId: selectedThread.freelancer_id,
-                sessionKey: keyToUse,
             });
         } else {
             return;
@@ -378,9 +374,17 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
         socket.onopen = () => setIsWsReady(true);
         socket.onmessage = handleWsMessage;
         socket.onerror = (err) => console.error(err);
-        socket.onclose = () => setIsWsReady(false);
+        socket.onclose = (event) => {
+            console.info('[chat-ws] close', {
+                url: wsUrl,
+                code: event.code,
+                reason: event.reason,
+                wasClean: event.wasClean,
+            });
+            setIsWsReady(false);
+        };
         return () => { try { socket.close(); } catch { } if (ws.current === socket) ws.current = null; };
-    }, [selectedThread, userType, sessionKey, clientIdentity]);
+    }, [selectedThread, userType, sessionKey]);
 
     const onSelectFiles = async (e) => {
         const files = Array.from(e.target.files || []);
@@ -602,9 +606,20 @@ const ChatModal = ({ isOpen = true, userType = "guest", initialSelectedThreadId 
                 <div className="modal-header">
                     <div className="modal-title-wrap">
                         <h3>{freelancerUsername || selectedThread?.display_name || "Chat"}</h3>
-                        <p>Real-time messages, offers, and payment updates</p>
+                        <p>
+                            {normalizedUserType === "guest"
+                                ? "No login needed. Every reply stays in your guest inbox in this browser."
+                                : "Real-time messages, offers, and payment updates"}
+                        </p>
                     </div>
-                    <button className="close-btn" onClick={onClose} aria-label="Close">✖</button>
+                    <div className="modal-header-actions">
+                        {normalizedUserType === "guest" && sessionKey && (
+                            <Link href="/messages" className="inbox-link">
+                                Open Inbox
+                            </Link>
+                        )}
+                        <button className="close-btn" onClick={onClose} aria-label="Close">✖</button>
+                    </div>
                 </div>
                 <div className="chat-body">
                     {!isolateThreadView && (

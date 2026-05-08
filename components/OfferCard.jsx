@@ -148,7 +148,6 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
     if (showClientPaymentAction) {
       return {
         title: isPaymentFailed ? "Complete payment to lock in this project" : "You're one step away from starting",
-        statusLabel: "Offer accepted",
         helperText:
           paymentSyncState === "syncing"
             ? "We are confirming your payment now. This should only take a moment."
@@ -160,7 +159,6 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
     if (isAwaitingClientPayment) {
       return {
         title: "Offer accepted. Waiting for client payment",
-        statusLabel: "Accepted",
         helperText:
           "Nice work. The client must complete payment before the project is fully confirmed and work can begin.",
         ctaLabel: null,
@@ -169,7 +167,6 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
 
     return {
       title: isCreator ? "Project confirmed" : "Payment confirmed",
-      statusLabel: jobStatusDisplay,
       helperText: isCreator
         ? "Payment is confirmed. You can begin work as soon as the client shares any final details."
         : "Your payment is confirmed and the project is ready to move forward.",
@@ -222,8 +219,6 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
     try {
 
       const paymentOptions = {
-        session_key: localStorage.getItem("guestSessionKey"),
-
         client_email: onboardingData.client_email,
         client_password: onboardingData.client_password,
         client_password_confirm: onboardingData.client_password_confirm,
@@ -300,7 +295,6 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
         <div className="offer-job-created">
           <div className="job-created-header">
             <h4>{jobStateContent.title}</h4>
-            <p className="job-status">Status: <strong>{jobStateContent.statusLabel}</strong></p>
           </div>
 
           <p className="job-created-copy">{jobStateContent.helperText}</p>

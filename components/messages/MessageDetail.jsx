@@ -65,7 +65,7 @@ export default function MessageDetail() {
 
   const { uploadFileAsync, isUploading } = useFileUpload()
 
-  const wsUrl = buildThreadWebSocketUrl({ threadId: id, sessionKey: effectiveSessionKey })
+  const wsUrl = buildThreadWebSocketUrl({ threadId: id })
   const { isConnected } = useWebSocket(wsUrl, { onMessage: handleWebSocketMessage })
 
   const autoResizeTextarea = useCallback(() => {

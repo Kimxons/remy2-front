@@ -29,7 +29,7 @@ const Messages = () => {
       setCurrentUser({})
     }
 
-    setGuestSessionKey(localStorage.getItem("guestSessionKey"))
+    setGuestSessionKey(guestSessionService.getSessionKey())
     setHasAccessToken(Boolean(localStorage.getItem("accessToken") || localStorage.getItem("token")))
     setHasHydrated(true)
   }, [])
@@ -69,7 +69,7 @@ const Messages = () => {
     queryFn: () =>
       isGuestAccess
         ? httpClient
-          .get("/chat/guest-threads/", { params: { session_key: guestSessionKey } })
+          .get("/chat/guest-threads/")
           .then((res) => res.data.results || res.data.threads || res.data || [])
         : httpClient
           .get("/chat/threads/")
@@ -109,13 +109,7 @@ const Messages = () => {
   }, [guestSessionKey, isGuestAccess, queryClient, refetch])
 
   const markReadMutation = useMutation({
-    mutationFn: ({ id, isGuestThread }) => {
-      let url = `/chat/threads/${id}/read/`
-      if (isGuestThread && isGuestAccess) {
-        url += `?session_key=${guestSessionKey}`
-      }
-      return httpClient.put(url)
-    },
+    mutationFn: ({ id }) => httpClient.put(`/chat/threads/${id}/read/`),
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: ["threads", isGuestAccess, guestSessionKey] })
       const previousData = queryClient.getQueryData(["threads", isGuestAccess, guestSessionKey])
@@ -136,11 +130,10 @@ const Messages = () => {
   })
 
   const markUnreadMutation = useMutation({
-    mutationFn: async ({ id, isGuestThread }) => {
-      const suffix = isGuestThread && isGuestAccess ? `?session_key=${guestSessionKey}` : ""
+    mutationFn: async ({ id }) => {
       const candidates = [
-        { method: "put", url: `/chat/threads/${id}/unread/${suffix}` },
-        { method: "post", url: `/chat/threads/${id}/unread/${suffix}` },
+        { method: "put", url: `/chat/threads/${id}/unread/` },
+        { method: "post", url: `/chat/threads/${id}/unread/` },
       ]
 
       let lastError = null
@@ -251,12 +244,33 @@ const Messages = () => {
     return (
       <div className="messages-page">
         <div className="messages-shell">
+          {isGuestAccess && (
+            <div className="messages-guest-banner">
+              <div>
+                <strong>Your inbox is ready</strong>
+                <p>
+                  Keep freelancer replies, offers, and follow-ups in one place while you decide who to hire.
+                </p>
+              </div>
+              <Link href="/categories" className="messages-guest-banner__cta">
+                Find Another Freelancer
+              </Link>
+            </div>
+          )}
           <div className="messages-empty">
             <h2>No conversations yet</h2>
-            <p>Start a conversation and your inbox will appear here.</p>
-            {!isAuthenticatedUser && (
-              <Link href="/register" className="primary-btn">
-                Create Free Account
+            <p>
+              {isAuthenticatedUser
+                ? "Start a conversation and your inbox will appear here."
+                : "Start a chat from the freelancer list and their reply will show up here."}
+            </p>
+            {!isAuthenticatedUser ? (
+              <Link href="/categories" className="primary-btn">
+                Start New Chat
+              </Link>
+            ) : (
+              <Link href="/categories" className="primary-btn">
+                Browse Experts
               </Link>
             )}
           </div>
@@ -268,14 +282,31 @@ const Messages = () => {
   return (
     <div className="messages-page">
       <div className="messages-shell">
+        {isGuestAccess && (
+          <div className="messages-guest-banner">
+            <div>
+              <strong>Your inbox is ready</strong>
+              <p>
+                Keep freelancer replies, offers, and follow-ups in one place while you decide who to hire.
+              </p>
+            </div>
+            <Link href="/categories" className="messages-guest-banner__cta">
+              Find Another Freelancer
+            </Link>
+          </div>
+        )}
         <div className="messages-header">
           <div>
             <h1>Messages</h1>
-            <p>Reply quickly to keep conversations moving and close work faster.</p>
+            <p>
+              {isGuestAccess
+                ? "Review replies, compare offers, and pick the best fit for your project."
+                : "Reply quickly to keep conversations moving and close work faster."}
+            </p>
           </div>
           <div className="messages-header-stats">
-            <span className="stat-pill">{threads.length} Total</span>
-            <span className="stat-pill stat-pill--unread">{unreadCount} Unread</span>
+            <span className="stat-pill">{threads.length} Conversations</span>
+            <span className="stat-pill stat-pill--unread">{unreadCount} New Replies</span>
             <span className="stat-pill">{offerCount} Offers</span>
           </div>
         </div>
@@ -348,7 +379,7 @@ const Messages = () => {
             return (
               <Link
                 key={thread.id}
-                href={`/message/${thread.id}`}
+                href={`/messages/${thread.id}`}
                 role="listitem"
                 className={`message-row ${thread.unread_count > 0 ? "unread" : ""}`}
                 onClick={() =>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"
 import Link from "next/link";
+import guestSessionService from "../../services/guestSessionService";
 import "./Home.scss";
 
 const Home = () => {
@@ -42,7 +43,7 @@ const Home = () => {
             }
         }
 
-        const existingSession = localStorage.getItem("guestSessionKey");
+        const existingSession = guestSessionService.getSessionKey();
         if (existingSession) {
             setGuestSessionKey(existingSession);
             return;
@@ -50,20 +51,10 @@ const Home = () => {
 
         const createGuestSession = async () => {
             try {
-                const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-
-                const res = await fetch(`${API_BASE}/api/users/csrf-and-session/`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const data = await res.json();
-                const key = data.sessionId || data.session_key || data.sessionid;
+                const data = await guestSessionService.initializeSession();
+                const key = data?.sessionKey;
 
                 if (key) {
-                    localStorage.setItem("guestSessionKey", key);
                     setGuestSessionKey(key);
                 }
             } catch (err) {
@@ -105,11 +96,7 @@ const Home = () => {
 
                         {(isClient || !currentUser) && (
                             <Link
-                                href={
-                                    guestSessionKey
-                                        ? `/categories?session_key=${String(guestSessionKey)}`
-                                        : "/categories"
-                                }
+                                href="/categories"
                                 className="btn primary"
                             >
                                 Browse Services →
@@ -184,7 +171,7 @@ const Home = () => {
                     <p>Connect with professional writers who help you communicate clearly and build your digital authority.</p>
                     <p>High-quality, original content crafted specifically for your professional and business needs.</p>
                     <Link
-                        href={guestSessionKey ? `/categories?session_key=${String(guestSessionKey)}` : "/categories"}
+                        href="/categories"
                         className="btn primary large-cta-btn"
                     >
                         Start Your Project →

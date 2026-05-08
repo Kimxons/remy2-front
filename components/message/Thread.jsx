@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import httpClient from "../../api/httpClient"
 import chatApi from "../../api/chatApi"
@@ -94,7 +95,6 @@ const MessageBubble = ({
   guestLabel,
 }) => {
   const normalizedSessionKey = String(sessionKey || "").trim()
-  const normalizedGuestLabel = String(guestLabel || "").trim().toLowerCase()
   const senderGuestCandidates = [
     m?.sender_guest_key,
     m?.guest_session_key,
@@ -121,8 +121,7 @@ const MessageBubble = ({
     : isAuthenticated
       ? !!(currentUsername && (senderUsernameNormalized === currentUsername || senderNameNormalized === currentUsername))
       : !!(
-        (normalizedSessionKey && senderGuestCandidates.includes(normalizedSessionKey)) ||
-        (normalizedGuestLabel && senderNameNormalized === normalizedGuestLabel)
+        normalizedSessionKey && senderGuestCandidates.includes(normalizedSessionKey)
       )
   const bubbleClasses = isMine ? "chat-bubble chat-bubble--mine" : "chat-bubble chat-bubble--theirs"
   const containerClasses = isMine ? "thread-message-row thread-message-row--mine" : "thread-message-row thread-message-row--theirs"
@@ -247,7 +246,6 @@ export default function Thread() {
   const [recoveryMessage, setRecoveryMessage] = useState("")
   const urlSessionKey = searchParams?.get("session_key") || null
   const storedThreadSessionKey = !isAuthenticated ? guestSessionService.getThreadSessionKey(id) : null
-  const hasExplicitGuestThreadSession = !isAuthenticated && !!(urlSessionKey || storedThreadSessionKey)
   const sessionAvailable = isAuthenticated || !!sessionKey
   const isSessionExpired = !isAuthenticated && sessionAvailable && guestSessionService.isSessionExpired()
   const isGuestViewer = !isAuthenticated && !currentUser?.id && !!sessionKey
@@ -349,7 +347,7 @@ export default function Thread() {
     isLoading: isGuestThreadsLoading,
   } = useQuery({
     queryKey: ["guestThreads", sessionKey],
-    queryFn: () => chatApi.getGuestThreads(sessionKey),
+    queryFn: () => chatApi.getGuestThreads(),
     enabled: !isAuthenticated && !!sessionKey,
     retry: false,
     staleTime: 30 * 1000,
@@ -359,16 +357,13 @@ export default function Thread() {
   const currentGuestThread = !isAuthenticated
     ? guestThreads.find((thread) => String(thread?.id) === String(id))
     : null
-  const canLoadGuestThreadMessages = isAuthenticated || (
-    !!sessionKey && (hasExplicitGuestThreadSession || !!currentGuestThread)
-  )
+  const canLoadGuestThreadMessages = isAuthenticated || (!!sessionKey && !!currentGuestThread)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["messages", id, sessionKey],
-    queryFn: () => {
-      const params = sessionKey ? { session_key: sessionKey } : {}
-      return httpClient.get(`/chat/threads/${id}/messages/`, { params }).then((r) => r.data)
-    },
+    queryFn: () => httpClient.get(`/chat/threads/${id}/messages/`, {
+      skipAuthHeader: !isAuthenticated,
+    }).then((r) => r.data),
     enabled: !!id && canLoadGuestThreadMessages,
     retry: (failureCount, queryError) => {
       const status = queryError?.response?.status
@@ -392,7 +387,6 @@ export default function Thread() {
       isAuthenticated ||
       !id ||
       !sessionKey ||
-      hasExplicitGuestThreadSession ||
       isGuestThreadsLoading ||
       guestRedirectAttemptedRef.current
     ) {
@@ -419,7 +413,6 @@ export default function Thread() {
   }, [
     currentGuestThread,
     guestThreads,
-    hasExplicitGuestThreadSession,
     id,
     isAuthenticated,
     isGuestThreadsLoading,
@@ -449,7 +442,7 @@ export default function Thread() {
       try {
         const activeSessionKey = sessionKey || guestSessionService.getSessionKey()
         const guestThreadsResponse = activeSessionKey
-          ? await chatApi.getGuestThreads(activeSessionKey)
+          ? await chatApi.getGuestThreads()
           : { results: [] }
         const guestThreads = guestThreadsResponse?.results || guestThreadsResponse || []
         const fallbackThread = guestThreads.find((thread) => String(thread?.id) !== String(id)) || guestThreads[0]
@@ -471,7 +464,7 @@ export default function Thread() {
         setSessionKey(initialized?.sessionKey || null)
         setGuestLabel(initialized?.guestLabel || null)
         setSessionReady(true)
-        setRecoveryMessage("We started a fresh guest session. Choose a freelancer to continue chatting.")
+        setRecoveryMessage("We couldn't restore that guest chat in this browser session. Choose a freelancer to continue chatting.")
         router.replace("/categories?fresh_session=1")
       } catch (recoveryError) {
         if (cancelled) return
@@ -881,10 +874,7 @@ export default function Thread() {
   })
 
   const sendMutation = useMutation({
-    mutationFn: (payload) => {
-      const params = sessionKey ? { session_key: sessionKey } : {}
-      return httpClient.post(`/chat/threads/${id}/messages/`, payload, { params })
-    },
+    mutationFn: (payload) => httpClient.post(`/chat/threads/${id}/messages/`, payload),
 
     onSuccess: () => {
       setText("")
@@ -939,7 +929,7 @@ export default function Thread() {
                 typeof variables?.decision === "object" ? variables.decision?.clientEmail : ""
               const email = (acceptedEmail || "").trim()
               if (!email || !EMAIL_REGEX.test(email)) {
-                alert("Please provide a valid email before proceeding to payment.")
+                alert("Please provide a valid email before proceeding")
                 return
               }
 
@@ -963,7 +953,6 @@ export default function Thread() {
                 return
               }
 
-              paymentOptions.session_key = sessionKey
               paymentOptions.client_email = email
               paymentOptions.client_password = password
               paymentOptions.client_password_confirm = confirmPassword
@@ -971,10 +960,6 @@ export default function Thread() {
 
             if (paymentOptions.client_email) {
               savePendingClientEmailForJob(data.job_created.id, paymentOptions.client_email)
-            }
-
-            if (paymentOptions.session_key == null) {
-              paymentOptions.session_key = localStorage.getItem("guestSessionKey") || undefined
             }
 
             let paymentData = null
@@ -1242,17 +1227,30 @@ export default function Thread() {
 
         {/* Header */}
         <div className="thread-modern__header">
-          <div className="flex items-center gap-3">
-            <div className="thread-modern__header-icon">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+          <div className="flex items-center justify-between gap-4 w-full">
+            <div className="flex items-center gap-3">
+              <div className="thread-modern__header-icon">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="font-semibold text-lg text-slate-900">
+                  {participantName ? `Chat with ${participantName}` : "Chat Conversation"}
+                </h2>
+              </div>
             </div>
-            <div>
-              <h2 className="font-semibold text-lg text-slate-900">
-                {participantName ? `Chat with ${participantName}` : "Chat Conversation"}
-              </h2>
-            </div>
+            {!isAuthenticated && (
+              <Link
+                href="/messages"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-red-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Inbox
+              </Link>
+            )}
           </div>
         </div>
 

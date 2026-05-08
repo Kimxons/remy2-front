@@ -4,7 +4,7 @@
  * Supports both authenticated users and guest sessions
  */
 
-import httpClient from "./httpClient";
+import httpClient, { getAuthToken } from "./httpClient";
 import { buildNewThreadWebSocketUrl, buildThreadWebSocketUrl } from "../utils/websocket";
 
 const chatApi = {
@@ -24,77 +24,62 @@ const chatApi = {
     return response.data;
   },
 
-  getGuestThreads: async (sessionKey) => {
+  getGuestThreads: async () => {
     const response = await httpClient.get("/chat/guest-threads/", {
-      params: { session_key: sessionKey },
+      skipAuthHeader: true,
     });
     return response.data;
   },
 
-  previewGuestThreads: async (guestSessionKey) => {
-    const response = await httpClient.get(
-      "/chat/threads/preview-guest-threads/",
-      {
-        params: { guest_session_key: guestSessionKey },
-      }
-    );
+  previewGuestThreads: async () => {
+    const response = await httpClient.get("/chat/threads/preview-guest-threads/");
     return response.data;
   },
 
-  createThread: async (freelancerUsername, sessionKey = null) => {
-    const endpoint = sessionKey
-      ? "/chat/guest-thread/create/"
-      : "/chat/threads/";
+  createThread: async (freelancerUsername, options = {}) => {
+    const isAuthenticated = Boolean(options.isAuthenticated);
+    const endpoint = isAuthenticated ? "/chat/threads/" : "/chat/guest-thread/create/";
 
-    const payload = sessionKey
+    const payload = isAuthenticated
       ? {
-        freelancer_username: freelancerUsername,
-        session_key: sessionKey,
+        other_user_username: freelancerUsername,
       }
       : {
-        other_user_username: freelancerUsername,
+        freelancer_username: freelancerUsername,
       };
 
-    const response = await httpClient.post(endpoint, payload);
+    const response = await httpClient.post(endpoint, payload, isAuthenticated ? undefined : {
+      skipAuthHeader: true,
+    });
     return response.data;
   },
 
-  getThread: async (threadId, sessionKey = null) => {
-    const params = sessionKey ? { session_key: sessionKey } : {};
-    const response = await httpClient.get(
-      `/chat/threads/${threadId}/`,
-      { params }
-    );
+  getThread: async (threadId) => {
+    const response = await httpClient.get(`/chat/threads/${threadId}/`);
     return response.data;
   },
 
   // =========================
   // MESSAGES
   // =========================
-  getMessages: async (threadId, sessionKey = null) => {
-    const params = sessionKey ? { session_key: sessionKey } : {};
-    const response = await httpClient.get(
-      `/chat/threads/${threadId}/messages/`,
-      { params }
-    );
+  getMessages: async (threadId, options = {}) => {
+    const response = await httpClient.get(`/chat/threads/${threadId}/messages/`, {
+      skipAuthHeader: Boolean(options.skipAuthHeader),
+    });
     return response.data;
   },
 
   sendMessage: async (
     threadId,
     message,
-    sessionKey = null,
     attachmentIds = []
   ) => {
-    const params = sessionKey ? { session_key: sessionKey } : {};
-
     const response = await httpClient.post(
       `/chat/threads/${threadId}/messages/`,
       {
         message,
         attachment_ids: attachmentIds,
       },
-      { params }
     );
 
     return response.data;
@@ -103,9 +88,7 @@ const chatApi = {
   // =========================
   // OFFERS
   // =========================
-  sendOffer: async (threadId, offer, sessionKey = null) => {
-    const params = sessionKey ? { session_key: sessionKey } : {};
-
+  sendOffer: async (threadId, offer) => {
     const response = await httpClient.post(
       `/chat/threads/${threadId}/messages/`,
       {
@@ -120,13 +103,12 @@ const chatApi = {
         offer_description: offer.description,
         attachment_ids: offer.attachment_ids || [],
       },
-      { params }
     );
 
     return response.data;
   },
 
-  updateOfferStatus: async (threadId, offerId, decision, sessionKey = null) => {
+  updateOfferStatus: async (threadId, offerId, decision) => {
     const decisionValue =
       decision && typeof decision === "object"
         ? decision.decision || decision.offer_status || ""
@@ -142,8 +124,7 @@ const chatApi = {
 
     const response = await httpClient.post(
       `/chat/threads/${threadId}/messages/${offerId}/update-offer/`,
-      payload,
-      sessionKey ? { params: { session_key: sessionKey } } : undefined
+      payload
     );
 
     return response.data;
@@ -161,7 +142,6 @@ const chatApi = {
 
     // UPDATED: Destructure snake_case keys to match OfferCard.js
     const {
-      session_key,
       client_email,
       client_password,
       client_password_confirm
@@ -177,21 +157,15 @@ const chatApi = {
     // Clean up undefined keys
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-    const config = session_key
-      ? { params: { session_key: session_key } }
-      : {};
-
     try {
       console.log("🚀 INIT PAYMENT:", {
         jobId,
         email: payload.client_email,
-        sessionKey: session_key,
       });
 
       const response = await httpClient.post(
         "/payments/initialize/",
-        payload,
-        config
+        payload
       );
 
       console.log("✅ PAYMENT SUCCESS:", response.data);
@@ -209,7 +183,7 @@ const chatApi = {
   // =========================
   // FILE UPLOAD
   // =========================
-  uploadFile: async (file, threadId = null, sessionKey = null) => {
+  uploadFile: async (file, threadId = null) => {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -221,7 +195,6 @@ const chatApi = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      params: sessionKey ? { session_key: sessionKey } : {},
     };
 
     const response = await httpClient.post(

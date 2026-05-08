@@ -13,8 +13,49 @@ const LEGACY_GUEST_SESSION_KEY = "guest_session_key";
 const GUEST_LABEL_KEY = "guestLabel";
 const GUEST_SESSION_EXPIRY = "guestSessionExpiry";
 const CSRF_TOKEN_KEY = "csrfToken";
+const GUEST_SESSION_RETRY_AT_KEY = "guestSessionRetryAt";
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const THREAD_SESSION_KEY_PREFIX = "threadSessionKey:";
+
+const parseThrottleRetryAt = (error) => {
+  const detail = String(error?.response?.data?.detail || "");
+  const match = detail.match(/available in\s+(\d+)\s+seconds?/i);
+  if (!match) return null;
+
+  const seconds = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+
+  return Date.now() + (seconds * 1000);
+};
+
+const getStoredRetryAt = () => {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(GUEST_SESSION_RETRY_AT_KEY);
+  if (!raw) return null;
+
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isFinite(value) || value <= 0) {
+    localStorage.removeItem(GUEST_SESSION_RETRY_AT_KEY);
+    return null;
+  }
+
+  if (Date.now() >= value) {
+    localStorage.removeItem(GUEST_SESSION_RETRY_AT_KEY);
+    return null;
+  }
+
+  return value;
+};
+
+const storeRetryAt = (retryAt) => {
+  if (typeof window === "undefined") return;
+  if (!retryAt) {
+    localStorage.removeItem(GUEST_SESSION_RETRY_AT_KEY);
+    return;
+  }
+
+  localStorage.setItem(GUEST_SESSION_RETRY_AT_KEY, String(retryAt));
+};
 
 const makeThreadStorageKey = (threadId) => threadId ? `${THREAD_SESSION_KEY_PREFIX}${threadId}` : null;
 
@@ -80,6 +121,15 @@ export const guestSessionService = {
       }
     }
 
+    const retryAt = getStoredRetryAt();
+    if (retryAt) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+      const throttleError = new Error(`Guest session bootstrap is throttled. Retry in ${retryAfterSeconds} seconds.`);
+      throttleError.code = "GUEST_SESSION_THROTTLED";
+      throttleError.retryAt = retryAt;
+      throw throttleError;
+    }
+
     // 3. START THE INITIALIZATION
     try {
       isInitializing = true; // Lock the door
@@ -88,6 +138,7 @@ export const guestSessionService = {
 
       if (typeof window !== "undefined") {
         persistSessionData({ sessionKey: sessionId, guestLabel, csrfToken });
+        storeRetryAt(null);
 
         const expiryTime = Date.now() + SESSION_DURATION;
         localStorage.setItem(GUEST_SESSION_EXPIRY, expiryTime.toString());
@@ -95,6 +146,9 @@ export const guestSessionService = {
 
       return { sessionKey: sessionId, guestLabel, csrfToken };
     } catch (error) {
+      if (error?.response?.status === 429) {
+        storeRetryAt(parseThrottleRetryAt(error));
+      }
       console.error("Failed to initialize guest session:", error);
       throw error;
     } finally {
@@ -204,6 +258,7 @@ export const guestSessionService = {
     localStorage.removeItem(GUEST_LABEL_KEY);
     localStorage.removeItem(GUEST_SESSION_EXPIRY);
     localStorage.removeItem(CSRF_TOKEN_KEY);
+    localStorage.removeItem(GUEST_SESSION_RETRY_AT_KEY);
     clearThreadSessionKeysFromStorage();
   },
 
@@ -217,6 +272,8 @@ export const guestSessionService = {
 
     return !!(sessionKey && !isExpired);
   },
+
+  getSessionRetryAt: () => getStoredRetryAt(),
 
   /**
    * Preview threads that will be linked when guest converts to user

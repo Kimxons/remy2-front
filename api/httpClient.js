@@ -8,15 +8,39 @@
 import axios from "axios";
 import { deleteCookie, clearAuthSessionCookie } from "../utils/cookies";
 
-const DEFAULT_DEV_API_ORIGIN = "http://127.0.0.1:8000";
+const DEFAULT_DEV_API_PORT = "8000";
+const LOCAL_DEV_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
+
+const buildLocalDevApiOrigin = (port = DEFAULT_DEV_API_PORT) => {
+  if (typeof window === "undefined") {
+    return `http://127.0.0.1:${port}`;
+  }
+
+  return `${window.location.protocol}//${window.location.hostname}:${port}`;
+};
 
 const resolveApiOrigin = () => {
   const configuredBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (!configuredBase) {
-    return DEFAULT_DEV_API_ORIGIN;
+    return buildLocalDevApiOrigin();
   }
 
-  return configuredBase.replace(/\/api\/?$/, "");
+  const normalizedBase = configuredBase.replace(/\/api\/?$/, "");
+
+  try {
+    const parsedUrl = new URL(normalizedBase);
+    if (
+      typeof window !== "undefined" &&
+      LOCAL_DEV_HOSTNAMES.has(window.location.hostname) &&
+      LOCAL_DEV_HOSTNAMES.has(parsedUrl.hostname)
+    ) {
+      return buildLocalDevApiOrigin(parsedUrl.port || DEFAULT_DEV_API_PORT);
+    }
+  } catch {
+    return normalizedBase;
+  }
+
+  return normalizedBase;
 };
 
 /** @type {string} Base origin for all API requests */
@@ -152,19 +176,8 @@ const getCsrfToken = () => {
 const requestInterceptor = (config) => {
   // Add auth token if available
   const token = getAuthToken();
-  if (token) {
+  if (token && !config.skipAuthHeader) {
     config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  // Add guest session key for unauthenticated requests
-  if (!token) {
-    const guestSessionKey = getGuestSessionKey();
-    if (guestSessionKey) {
-      config.params = {
-        ...config.params,
-        session_key: guestSessionKey,
-      };
-    }
   }
 
   const csrfToken = getCsrfToken();
@@ -296,6 +309,9 @@ const responseErrorInterceptor = async (error) => {
       /\/chat\/threads\/[^/]+\/?$/.test(requestUrl);
 
     switch (status) {
+      case 429:
+        logWarn("[API] Rate limited:", requestUrl || safeData || status);
+        break;
       case 403:
         logError("[API] Forbidden:", data);
         break;

@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { ensureGuestAuth } from "@/utils/auth";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import httpClient from "../../api/httpClient";
 import { useAuth, useNotification } from "../../contexts/AppContexts";
 import { useCreateThread } from "../../hooks/useChatHooks";
-import { MessageCircle, Star, Clock, DollarSign, CheckCircle, Loader, ChevronRight, User } from "lucide-react";
+import guestSessionService from "../../services/guestSessionService";
+import { MessageCircle, Star, Clock, DollarSign, CheckCircle, Loader, ChevronRight } from "lucide-react";
 import "./Categories.scss";
 
 const formatUSD = (amount) => {
@@ -27,6 +28,7 @@ const Categories = () => {
 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const categoriesFetchedRef = useRef(false);
   const subjectsRequestRef = useRef(0);
   const freelancersRequestRef = useRef(0); // <--- Add this line here
   const recoveryToastShownRef = useRef(false);
@@ -38,16 +40,33 @@ const Categories = () => {
   const searchParams = useSearchParams();
   const hasFreshSessionRecovery = searchParams?.get("fresh_session") === "1";
   const [showRecoveryBanner, setShowRecoveryBanner] = useState(hasFreshSessionRecovery);
+  const [guestInboxReady, setGuestInboxReady] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setGuestInboxReady(false);
+      return;
+    }
+
+    setGuestInboxReady(Boolean(guestSessionService.getSessionKey()));
+  }, [isAuthenticated]);
 
   const fetchCategories = useCallback(async () => {
+    if (categoriesFetchedRef.current) {
+      return;
+    }
+
+    categoriesFetchedRef.current = true;
     setLoading(true);
     try {
       const res = await httpClient.get("/jobs/categories");
       setCategories(res.data.results || []);
       setError("");
     } catch (err) {
-      setError("Failed to fetch categories.");
-      showError("Failed to fetch categories");
+      categoriesFetchedRef.current = false;
+      const status = err?.response?.status;
+      setError(status === 429 ? "Too many requests. Please wait a moment and try again." : "Failed to fetch categories.");
+      showError(status === 429 ? "Too many requests. Please wait a moment and try again." : "Failed to fetch categories");
     } finally {
       setLoading(false);
     }
@@ -153,23 +172,31 @@ const Categories = () => {
 
   const handleOpenChat = async (freelancer) => {
     try {
-      // Step A: Ensure authentication (guest or real)
+      // Bootstrap the cookie-backed guest session before creating a guest thread.
       if (!isAuthenticated) {
-        const ok = await ensureGuestAuth(); // This hits POST /api/users/token/guest/
+        const initialized = await guestSessionService.initializeSession();
 
-        if (!ok) {
+        if (!initialized?.sessionKey && !guestSessionService.getSessionKey()) {
           showError("Unable to start guest session.");
           return;
         }
       }
 
-      // Step B: create thread normally
       const thread = await createThreadMutation.mutateAsync({
         freelancerUsername: freelancer.username,
       });
+      const threadId = thread?.thread?.id || thread?.id;
+
+      if (!threadId) {
+        throw new Error("Missing thread id from create-thread response.");
+      }
+
+      if (!isAuthenticated) {
+        setGuestInboxReady(true);
+      }
 
       showSuccess(`Chat started with ${freelancer.username}`);
-      router.push(`/threads/${thread.id}`);
+      router.push(`/messages/${threadId}`);
     } catch (err) {
       console.error("Chat creation error:", err);
 
@@ -261,7 +288,7 @@ const Categories = () => {
             <CheckCircle size={18} />
             <div>
               <strong>Started a fresh chat session.</strong>
-              <span> Your old guest link expired, so you can pick a freelancer and continue from a clean thread.</span>
+              <span> We couldn't restore that guest chat in this browser session, so you can pick a freelancer and continue from a clean thread.</span>
             </div>
           </div>
           <button
@@ -272,6 +299,21 @@ const Categories = () => {
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {!isAuthenticated && guestInboxReady && (
+        <div className="guest-inbox-banner" role="status" aria-live="polite">
+          <div className="guest-inbox-banner__content">
+            <MessageCircle size={18} />
+            <div>
+              <strong>Your guest inbox is ready.</strong>
+              <span> Keep messaging freelancers and compare every reply in one place without signing in.</span>
+            </div>
+          </div>
+          <Link href="/messages" className="guest-inbox-banner__cta">
+            Open Inbox
+          </Link>
         </div>
       )}
 
@@ -399,7 +441,11 @@ const Categories = () => {
               <span className="step-badge">Step 3</span>
               Connect
             </h2>
-            <p className="section-description">Start a conversation</p>
+            <p className="section-description">
+              {guestInboxReady && !isAuthenticated
+                ? "Start more conversations and compare replies from your guest inbox."
+                : "Start a conversation"}
+            </p>
           </div>
 
           {freelancers.length > 0 ? (
@@ -465,6 +511,12 @@ const Categories = () => {
                     <MessageCircle size={18} />
                     Start Chat
                   </button>
+
+                  {!isAuthenticated && guestInboxReady && (
+                    <Link href="/messages" className="freelancer-inbox-link">
+                      Open Inbox
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

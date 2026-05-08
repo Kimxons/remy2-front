@@ -37,6 +37,11 @@ const Login = ({ onLoginSuccess, initialSearchParams = {} }) => {
     getSearchParamValue(initialSearchParams, "uidb64");
   const tokenFromQuery = getSearchParamValue(initialSearchParams, "token");
   const redirectParam = getSearchParamValue(initialSearchParams, "redirect");
+  const paymentStatus = getSearchParamValue(initialSearchParams, "payment");
+  const paymentReference =
+    getSearchParamValue(initialSearchParams, "reference") ||
+    getSearchParamValue(initialSearchParams, "trxref");
+  const showPaymentVerifiedBanner = paymentStatus === "verified";
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
@@ -178,19 +183,30 @@ const Login = ({ onLoginSuccess, initialSearchParams = {} }) => {
       // Axios error handling: the message is usually in err.response.data
       const errorData = err.response?.data;
       const rawMessage = errorData?.detail || errorData?.error || err.message || "Login failed.";
-      
-      console.error("Login error details:", rawMessage);
 
       if (role === "CLIENT" && /no active account found/i.test(rawMessage)) {
+        const verificationMessage = showPaymentVerifiedBanner
+          ? "Your payment was received, but your client account must be verified before you can sign in. Check your email for the setup link to finish account setup."
+          : "Your client account needs to be verified before you can sign in. Check your email for the setup link to finish account setup.";
+        let resendFailed = false;
+
         try {
           await requestPasswordSetupEmail(formData.email);
           setResendMessage("Setup link sent. Check your email.");
         } catch (sendErr) {
-          setError("Account found but could not send setup link.");
+          resendFailed = true;
+          setResendMessage("");
+          setError("We could not resend the setup link right now. Please try again in a moment.");
+        }
+
+        if (!resendFailed) {
+          setError(verificationMessage);
         }
         setRequiresPasswordSetup(true);
         return;
       }
+
+      console.error("Login error details:", rawMessage);
 
       setError(rawMessage);
       setRequiresPasswordSetup(/password setup required|no active/i.test(rawMessage));
@@ -248,6 +264,21 @@ const Login = ({ onLoginSuccess, initialSearchParams = {} }) => {
             <div className="login__header">
               <h2 className="login__title">Sign in</h2>
             </div>
+
+            {showPaymentVerifiedBanner && (
+              <div className="login__notice login__notice--success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+                <div>
+                  <p className="login__notice-title">Payment verified, sign in to continue</p>
+                  <p className="login__notice-text">
+                    Your payment has been received. Sign in to continue to your client workspace.
+                    {paymentReference ? ` Reference: ${paymentReference}` : ""}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="login__role-tabs">
               <button

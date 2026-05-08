@@ -15,6 +15,7 @@ export default function Job() {
   const queryClient = useQueryClient()
   const { showSuccess, showError, showInfo } = useNotification()
   const [currentUser, setCurrentUser] = useState(null)
+  const [countdownNow, setCountdownNow] = useState(() => Date.now())
 
   const [showSubmissionForm, setShowSubmissionForm] = useState(false)
   const [showRatingForm, setShowRatingForm] = useState(false)
@@ -38,16 +39,16 @@ export default function Job() {
     typeof attachment === "string"
       ? toAbsoluteUrl(attachment)
       :
-    toAbsoluteUrl(
-      attachment?.download_url ||
-      attachment?.file_url ||
-      attachment?.url ||
-      attachment?.file ||
-      attachment?.file_path ||
-      attachment?.path ||
-      attachment?.file?.url ||
-      ""
-    )
+      toAbsoluteUrl(
+        attachment?.download_url ||
+        attachment?.file_url ||
+        attachment?.url ||
+        attachment?.file ||
+        attachment?.file_path ||
+        attachment?.path ||
+        attachment?.file?.url ||
+        ""
+      )
   const getSubmissionFileItems = (submission) => {
     if (!submission || typeof submission !== "object") return []
 
@@ -111,17 +112,17 @@ export default function Job() {
 
   const getApiErrorMessage = (error, fallback) => {
     const data = error?.response?.data
-  
+
     // backend returned plain string
     if (typeof data === "string" && data.trim()) {
       return data
     }
-  
+
     // DRF standard error
     if (data?.detail) {
       return data.detail
     }
-  
+
     // non_field_errors
     if (
       Array.isArray(data?.non_field_errors) &&
@@ -129,21 +130,21 @@ export default function Job() {
     ) {
       return data.non_field_errors[0]
     }
-  
+
     // field errors object
     if (data && typeof data === "object") {
       const firstKey = Object.keys(data)[0]
       const firstValue = data[firstKey]
-  
+
       if (Array.isArray(firstValue) && firstValue.length > 0) {
         return String(firstValue[0])
       }
-  
+
       if (typeof firstValue === "string") {
         return firstValue
       }
     }
-  
+
     return fallback || "Something went wrong."
   }
 
@@ -186,12 +187,27 @@ export default function Job() {
     queryKey: ["job", id],
     queryFn: () => httpClient.get(`/orders/jobs/${id}/`).then((r) => r.data),
   })
+  useEffect(() => {
+    if (!job?.delivery_due_at) return
+    const intervalId = window.setInterval(() => {
+      setCountdownNow(Date.now())
+    }, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [job?.delivery_due_at])
+
+  const jobStatusForDisputeQuery = String(job?.status || "").toUpperCase()
+  const shouldFetchDispute = Boolean(
+    id &&
+    currentUser &&
+    !job?.dispute &&
+    ["DISPUTE_OPEN", "DISPUTE_RESOLVED"].includes(jobStatusForDisputeQuery)
+  )
 
   const submitMutation = useMutation({
     mutationFn: (formData) => {
       const normalizedStatus = String(job?.status || "").toUpperCase()
-      if (!["IN_PROGRESS", "DISPUTE_OPEN"].includes(normalizedStatus)) {
-        throw new Error("Job must be IN_PROGRESS or DISPUTE_OPEN before submission.")
+      if (!["PAID", "ASSIGNED", "IN_PROGRESS", "DISPUTE_OPEN"].includes(normalizedStatus)) {
+        throw new Error("Delivery can be sent once payment is confirmed.")
       }
       if (!isFreelancer) {
         throw new Error("Only the assigned freelancer can submit this job.")
@@ -203,7 +219,7 @@ export default function Job() {
     onSuccess: () => {
       queryClient.invalidateQueries(["job", id])
       setShowSubmissionForm(false)
-      showSuccess("Work submitted successfully. Job status is now DELIVERED.")
+      showSuccess("Delivery sent successfully. The client can now review it.")
     },
     onError: (error) => {
       const fallback = error?.message || "Failed to submit work. Please try again."
@@ -229,7 +245,7 @@ export default function Job() {
       queryClient.invalidateQueries(["dashboardJobs"])
       const earnedAmount = resolveFreelancerEarnings(job)
       showSuccess(`Job accepted and completed. Freelancer earnings: ${formatUSD(earnedAmount)}.`)
-      
+
       if (isClient) {
         showInfo("Freelancer has been notified. Any open dispute was auto-resolved as RESOLVED_PAID.")
       }
@@ -283,51 +299,6 @@ export default function Job() {
     }
   })
 
-  const startWorkMutation = useMutation({
-    mutationFn: async () => {
-      const allowedStatuses = ["PAID", "ASSIGNED"]
-      if (!allowedStatuses.includes(normalizedStatus)) {
-        throw new Error("Job must be PAID or ASSIGNED before starting work.")
-      }
-      if (!isFreelancer) {
-        throw new Error("Only the assigned freelancer can start this job.")
-      }
-
-      const candidates = [
-        { method: "post", url: `/orders/jobs/${id}/start/`, data: {} },
-        { method: "post", url: `/orders/jobs/${id}/start-work/`, data: {} },
-        { method: "post", url: `/orders/jobs/${id}/mark-in-progress/`, data: {} },
-        { method: "post", url: `/orders/jobs/${id}/in-progress/`, data: {} },
-        { method: "post", url: `/orders/jobs/${id}/status/`, data: { status: "IN_PROGRESS" } },
-        { method: "patch", url: `/orders/jobs/${id}/`, data: { status: "IN_PROGRESS" } },
-      ]
-
-      let lastError = null
-      for (const candidate of candidates) {
-        try {
-          return await httpClient.request(candidate)
-        } catch (error) {
-          const status = error?.response?.status
-          lastError = error
-          if (status === 404 || status === 405) {
-            continue
-          }
-          throw error
-        }
-      }
-
-      throw lastError || new Error("No API endpoint found to mark job IN_PROGRESS.")
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["job", id])
-      showSuccess("Job is now IN_PROGRESS. You can submit delivery when ready.")
-    },
-    onError: (error) => {
-      const fallback = error?.message || "Failed to start work. Please try again."
-      showError(getApiErrorMessage(error, fallback))
-    }
-  })
-
   const { data: disputeData } = useQuery({
     queryKey: ["job-dispute", id],
     queryFn: async () => {
@@ -340,7 +311,7 @@ export default function Job() {
         throw error
       }
     },
-    enabled: Boolean(id && currentUser),
+    enabled: shouldFetchDispute,
     retry: 1,
   })
 
@@ -446,10 +417,9 @@ export default function Job() {
     : (allowedReviews != null && reviewsUsed != null ? Math.max(allowedReviews - reviewsUsed, 0) : null)
   const canSubmit =
     isFreelancer &&
-    ["IN_PROGRESS", "DISPUTE_OPEN"].includes(normalizedStatus) &&
+    ["PAID", "ASSIGNED", "IN_PROGRESS", "DISPUTE_OPEN"].includes(normalizedStatus) &&
     !(normalizedStatus === "DISPUTE_OPEN" && reviewsRemaining != null && reviewsRemaining <= 0)
   const canComplete = isClient && normalizedStatus === "DELIVERED"
-  const canStartWork = isFreelancer && ["PAID", "ASSIGNED"].includes(normalizedStatus)
   const showFreelancerSubmitAction = isFreelancer || isFreelancerRole
   const showClientCompleteAction = isClient && ["DELIVERED", "CLIENT_COMPLETED"].includes(normalizedStatus)
   const showClientReviewChecklist = isClient && ["DELIVERED", "CLIENT_COMPLETED"].includes(normalizedStatus)
@@ -645,8 +615,48 @@ export default function Job() {
       variant: isDisputeReopened ? "reopened" : "opened",
     }] : []),
   ]
-  const currentStageLabel = workflowSteps.find((step) => step.active)?.title
-    || (isCompleted ? "5. Client Completed" : `Current status: ${job?.status_display || normalizedStatus}`)
+  const currentStageLabel = (() => {
+    const labels = {
+      PROVISIONAL: "Waiting for payment",
+      PENDING_PAYMENT: "Waiting for payment",
+      PAYMENT_FAILED: "Payment needs attention",
+      PAID: "Payment confirmed",
+      ASSIGNED: "Work ready to begin",
+      IN_PROGRESS: "Work in progress",
+      DELIVERED: "Waiting for client review",
+      CLIENT_COMPLETED: "Completed",
+      DISPUTE_OPEN: isDisputeReopened ? `Revision round ${disputeCycleCount}` : "Revision in progress",
+      DISPUTE_RESOLVED: "Dispute resolved",
+      CANCELLED: "Cancelled",
+    }
+    return labels[normalizedStatus] || (job?.status_display || normalizedStatus)
+  })()
+  const countdownInfo = (() => {
+    if (!job?.delivery_due_at) return null
+    if (!["IN_PROGRESS", "DELIVERED", "DISPUTE_OPEN"].includes(normalizedStatus)) return null
+
+    const dueAtTimestamp = new Date(job.delivery_due_at).getTime()
+    const diffMs = dueAtTimestamp - countdownNow
+    const absDiffMs = Math.abs(diffMs)
+    const totalSeconds = Math.floor(absDiffMs / 1000)
+    const days = Math.floor(totalSeconds / 86400)
+    const hours = Math.floor((totalSeconds % 86400) / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+    const parts = []
+
+    if (days > 0) parts.push(`${days}d`)
+    if (hours > 0 || parts.length > 0) parts.push(`${hours}h`)
+    if (minutes > 0 || parts.length > 0) parts.push(`${minutes}m`)
+    parts.push(`${seconds}s`)
+
+    return {
+      label: diffMs >= 0 ? "Time Remaining" : "Overdue By",
+      tone: diffMs >= 0 ? (absDiffMs <= 24 * 60 * 60 * 1000 ? "warning" : "active") : "overdue",
+      value: parts.join(" "),
+      dueText: new Date(job.delivery_due_at).toLocaleString(),
+    }
+  })()
 
   useEffect(() => {
     if (!job?.id || !isFreelancer || normalizedStatus !== "CLIENT_COMPLETED") return
@@ -982,43 +992,16 @@ export default function Job() {
               <span className="workflow-label">Current Stage</span>
               <strong>{currentStageLabel}</strong>
             </div>
+            {countdownInfo && (
+              <div className={`workflow-countdown workflow-countdown--${countdownInfo.tone}`}>
+                <span className="workflow-countdown__label">{countdownInfo.label}</span>
+                <strong>{countdownInfo.value}</strong>
+                <span className="workflow-countdown__meta">Due {countdownInfo.dueText}</span>
+              </div>
+            )}
             <div className="action-buttons">
               {showFreelancerSubmitAction && (
                 <>
-                  <button
-                    onClick={() => {
-                      if (!canStartWork) return
-                      startWorkMutation.mutate()
-                    }}
-                    className="btn-secondary"
-                    disabled={startWorkMutation.isLoading || !canStartWork}
-                    title={
-                      !isFreelancer
-                        ? "Only the assigned freelancer can start this job"
-                        : canStartWork
-                          ? "Mark job as IN_PROGRESS"
-                          : "Start Work is available only when job is PAID or ASSIGNED"
-                    }
-                  >
-                    {startWorkMutation.isLoading ? (
-                      <>
-                        <div className="spinner"></div>
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M5 12h14"></path>
-                          <path d="M12 5l7 7-7 7"></path>
-                        </svg>
-                        {!isFreelancer
-                          ? "1) Start Work (Not assigned to this job)"
-                          : canStartWork
-                            ? "1) Start Work (Set IN_PROGRESS)"
-                            : "1) Start Work (Waiting for PAID/ASSIGNED)"}
-                      </>
-                    )}
-                  </button>
                   <button
                     onClick={() => {
                       if (!canSubmit) return;
@@ -1028,22 +1011,22 @@ export default function Job() {
                     disabled={!canSubmit}
                     title={
                       !isFreelancer
-                        ? "Only the assigned freelancer can submit delivery"
+                        ? "Only the assigned freelancer can send the delivery"
                         : canSubmit
-                          ? "Submit completed delivery"
-                          : "Submission allowed when IN_PROGRESS or DISPUTE_OPEN (with reviews remaining)"
+                          ? "Open the delivery form"
+                          : "Delivery becomes available once payment is confirmed"
                     }
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                       <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
-                  {!isFreelancer
-                    ? "2) Submit Delivery (Not assigned to this job)"
-                    : canSubmit
-                      ? "2) Submit Delivery (Set DELIVERED)"
-                      : "2) Submit Delivery (Waiting for IN_PROGRESS/DISPUTE_OPEN)"}
-                </button>
+                    {!isFreelancer
+                      ? "Send Delivery"
+                      : canSubmit
+                        ? "Send Delivery"
+                        : "Delivery Locked Until Payment"}
+                  </button>
                   {normalizedStatus === "DISPUTE_OPEN" && (
                     <div className="info-message">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1052,7 +1035,7 @@ export default function Job() {
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                       </svg>
                       <p>
-                        Dispute revision cycle: this resubmission sets status back to <strong>DELIVERED</strong>.
+                        This job is in a revision round. Send the updated delivery back to the client here.
                         {reviewsRemaining != null ? ` Reviews remaining: ${reviewsRemaining}.` : ""}
                       </p>
                     </div>
@@ -1064,8 +1047,8 @@ export default function Job() {
                       <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
                     <p>
-                      <strong>Freelancer flow:</strong> Start Work (IN_PROGRESS) {"->"} Submit Delivery (DELIVERED).
-                      In submit modal: add note, attach files, then send.
+                      <strong>Freelancer flow:</strong> Once payment is confirmed, complete the work and send the delivery when ready.
+                      Add a note and any files in the delivery form.
                     </p>
                   </div>
                 </>
@@ -1093,7 +1076,7 @@ export default function Job() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      {canComplete ? "3) Approve Delivery (Set CLIENT_COMPLETED)" : "3) Approve Delivery (Waiting for DELIVERED)"}
+                      {canComplete ? "Approve Delivery" : "Approve Delivery Once It Arrives"}
                     </>
                   )}
                 </button>
@@ -1148,7 +1131,7 @@ export default function Job() {
                     <line x1="12" y1="16" x2="12" y2="12"></line>
                     <line x1="12" y1="8" x2="12.01" y2="8"></line>
                   </svg>
-                  <p>Payment received. Click <strong>Start Work</strong> to move this job to <strong>IN_PROGRESS</strong>, then use <strong>Submit Work</strong> to deliver.</p>
+                  <p>Payment received. You can work on the order and send the delivery as soon as it is ready.</p>
                 </div>
               )}
 

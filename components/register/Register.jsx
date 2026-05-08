@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import guestSessionService from "../../services/guestSessionService";
 import {
   Mail,
   Lock,
@@ -42,34 +43,27 @@ const Register = () => {
   const { email, password, password2, first_name, last_name, phone, role } = formData;
 
   useEffect(() => {
-    const existingSession = localStorage.getItem("guestSessionKey");
+    const existingSession = guestSessionService.getSessionKey();
     if (existingSession) {
-        setGuestSessionKey(existingSession);
-        return;
+      setGuestSessionKey(existingSession);
+      return;
     }
 
     const createGuestSession = async () => {
-        try {
-            const res = await fetch("http://127.0.0.1:8000/api/users/csrf-and-session/", {
-                method: "GET",
-                credentials: "include",
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      try {
+        const data = await guestSessionService.initializeSession();
+        const key = data?.sessionKey;
 
-            const data = await res.json();
-            const key = data.sessionId || data.session_key || data.sessionid;
-
-            if (key) {
-                localStorage.setItem("guestSessionKey", key);
-                setGuestSessionKey(key);
-            } else {
-                console.error("No session key returned:", data);
-            }
-        } catch (err) {
-            console.error("Failed to create guest session key:", err);
+        if (key) {
+          setGuestSessionKey(key);
+        } else {
+          console.error("No session key returned:", data);
         }
+      } catch (err) {
+        console.error("Failed to create guest session key:", err);
+      }
     };
-    
+
     createGuestSession();
 
   }, []);
@@ -101,10 +95,7 @@ const Register = () => {
   };
 
   const handleClientRedirect = () => {
-    const categoriesPath = guestSessionKey 
-        ? `/categories?session_key=${guestSessionKey}` 
-        : "/categories";
-    router.push(categoriesPath);
+    router.push("/categories");
   };
 
   const handleSubmit = async (e) => {

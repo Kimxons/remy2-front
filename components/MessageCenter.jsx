@@ -6,7 +6,7 @@ import LoadingState from "./LoadingState"
 
 const MessageCenter = ({ threads, isLoading, currentUsername, maxDisplay = 10 }) => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterType, setFilterType] = useState("all") 
+  const [filterType, setFilterType] = useState("all")
 
   const filteredThreads = useMemo(() => {
     if (!threads || threads.length === 0) return []
@@ -189,7 +189,7 @@ const MessageCenter = ({ threads, isLoading, currentUsername, maxDisplay = 10 })
             return thread.id ? (
               <Link
                 key={thread.id}
-                href={`/message/${thread.id}`}
+                href={`/messages/${thread.id}`}
                 className={`message-item ${thread.unread_count > 0 ? 'unread' : ''}`}
                 role="listitem"
               >

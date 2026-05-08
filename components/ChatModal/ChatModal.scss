@@ -107,6 +107,34 @@ $radius-2xl: var(--radius-2xl);
       }
     }
 
+    .modal-header-actions {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+    }
+
+    .inbox-link {
+      min-height: 36px;
+      padding: 0 $spacing-md;
+      border-radius: 999px;
+      border: 1px solid $border;
+      background: $card;
+      color: $text-primary;
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+
+      &:hover {
+        border-color: $primary;
+        color: $primary;
+        background: $muted;
+      }
+    }
+
     .close-btn {
       background: transparent;
       border: none;
@@ -401,7 +429,8 @@ $radius-2xl: var(--radius-2xl);
             max-width: 80%;
           }
 
-          .message-text, .offer-box {
+          .message-text,
+          .offer-box {
             padding: $spacing-md $spacing-lg;
             border-radius: $radius-xl;
             margin: 0;
@@ -435,7 +464,8 @@ $radius-2xl: var(--radius-2xl);
           &.sent {
             align-self: flex-end;
 
-            .message-text, .offer-box {
+            .message-text,
+            .offer-box {
               background: $primary;
               color: white;
               border-bottom-right-radius: $spacing-xs;
@@ -451,7 +481,8 @@ $radius-2xl: var(--radius-2xl);
           &.received {
             align-self: flex-start;
 
-            .message-text, .offer-box {
+            .message-text,
+            .offer-box {
               background: $card;
               color: $text-primary;
               border: 1px solid $border-light;

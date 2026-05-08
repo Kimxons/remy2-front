@@ -10,7 +10,7 @@ export const formatUSD = (amount) => {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2, 
+    maximumFractionDigits: 2,
   }).format(num);
 };
 
@@ -106,6 +106,12 @@ export const useWebSocket = (url, options = {}) => {
         setIsConnected(false);
         isConnectingRef.current = false;
         wsRef.current = null;
+        console.info('[chat-ws] close', {
+          url,
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        });
 
         onClose?.(event);
 
@@ -117,7 +123,7 @@ export const useWebSocket = (url, options = {}) => {
 
         if (shouldReconnectRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = reconnectInterval * Math.pow(1.5, reconnectAttemptsRef.current);
-          
+
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current += 1;
             connect();
@@ -137,7 +143,7 @@ export const useWebSocket = (url, options = {}) => {
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false;
     isConnectingRef.current = false;
-    
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -174,11 +180,11 @@ export const useWebSocket = (url, options = {}) => {
     return () => {
       shouldReconnectRef.current = false;
       isConnectingRef.current = false;
-      
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-      
+
       if (wsRef.current) {
         wsRef.current.close(1000, "Component unmounting");
         wsRef.current = null;
@@ -241,7 +247,7 @@ export const useChatThreads = () => {
         return response.results || response;
       }
       if (sessionKey) {
-        const response = await chatApi.getGuestThreads(sessionKey);
+        const response = await chatApi.getGuestThreads();
         return response.results || response;
       }
       return [];
@@ -255,14 +261,23 @@ export const useChatThreads = () => {
 export const useCreateThread = () => {
   const queryClient = useQueryClient();
   const { saveSessionKey } = useGuestSession();
+  const { isAuthenticated } = useAuth();
 
   const mutation = useMutation({
-    mutationFn: async ({ freelancerUsername, sessionKey }) => {
-      const response = await chatApi.createThread(freelancerUsername, sessionKey);
-      if (response.guest_session_key) {
-        saveSessionKey(response.guest_session_key);
-        guestSessionService.setSessionKey(response.guest_session_key);
+    mutationFn: async ({ freelancerUsername }) => {
+      const response = await chatApi.createThread(freelancerUsername, { isAuthenticated });
+      const createdThreadId = response?.thread?.id || response?.id || null;
+      const activeGuestSessionKey = response?.guest_session_key || guestSessionService.getSessionKey();
+
+      if (activeGuestSessionKey) {
+        saveSessionKey(activeGuestSessionKey);
+        guestSessionService.setSessionKey(activeGuestSessionKey);
       }
+
+      if (createdThreadId && activeGuestSessionKey) {
+        guestSessionService.setThreadSessionKey(createdThreadId, activeGuestSessionKey);
+      }
+
       return response;
     },
     onSuccess: () => {
@@ -276,11 +291,14 @@ export const useCreateThread = () => {
 export const useMessages = (threadId, sessionKey = null) => {
   const [optimisticMessages, setOptimisticMessages] = useState([]);
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   const { data: messages = [], isLoading, error } = useQuery({
     queryKey: ["messages", threadId],
     queryFn: async () => {
-      const response = await chatApi.getMessages(threadId, sessionKey);
+      const response = await chatApi.getMessages(threadId, {
+        skipAuthHeader: !isAuthenticated,
+      });
       return response.messages || response;
     },
     enabled: !!threadId,
@@ -289,7 +307,7 @@ export const useMessages = (threadId, sessionKey = null) => {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (message) => {
-      return await chatApi.sendMessage(threadId, message.message, sessionKey, message.attachment_ids);
+      return await chatApi.sendMessage(threadId, message.message, message.attachment_ids);
     },
     onSuccess: () => {
       setOptimisticMessages((prev) => prev.filter((m) => !m.isOptimistic));
@@ -324,12 +342,12 @@ export const useMessages = (threadId, sessionKey = null) => {
         queryClient.setQueryData(["messages", threadId], (old = []) => {
           const incomingMessage = data.message;
           const exists = old.some((m) => m.id === incomingMessage.id);
-          
+
           if (exists) return old;
-          
+
           return [...old, incomingMessage];
         });
-        
+
         queryClient.invalidateQueries({ queryKey: ["chatThreads"] });
       }
     },
@@ -354,8 +372,8 @@ export const useMessages = (threadId, sessionKey = null) => {
 
 export const useFileUpload = () => {
   const mutation = useMutation({
-    mutationFn: async ({ file, messageId, threadId }) => {
-      return await chatApi.uploadFile(file, messageId, threadId);
+    mutationFn: async ({ file, threadId }) => {
+      return await chatApi.uploadFile(file, threadId);
     },
   });
 
@@ -400,7 +418,7 @@ export const useDashboardSummary = () => {
 
 export const usePendingOffersReceived = () => {
   const { isAuthenticated } = useAuth();
-  
+
   const { data: pendingOffers = [], isLoading, error, refetch } = useQuery({
     queryKey: ["pendingOffersReceived"],
     queryFn: async () => {
@@ -416,10 +434,10 @@ export const usePendingOffersReceived = () => {
 
 export const usePendingOffersSent = () => {
   const { isAuthenticated } = useAuth();
-  
+
   const { data: sentOffers = [], isLoading, error, refetch } = useQuery({
     queryKey: ["pendingOffersSent"],
-    queryFn: async () => { 
+    queryFn: async () => {
       const response = await chatApi.getPendingOffersSent();
       return response.sent_pending_offers || [];
     },

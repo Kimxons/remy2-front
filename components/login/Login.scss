@@ -28,10 +28,9 @@
     justify-content: center;
     padding: $spacing-3xl;
     background: linear-gradient(135deg,
-      oklch(0.095 0 0) 0%,
-      oklch(0.125 0.01 27.325) 50%,
-      oklch(0.095 0 0) 100%
-    );
+        oklch(0.095 0 0) 0%,
+        oklch(0.125 0.01 27.325) 50%,
+        oklch(0.095 0 0) 100%);
     overflow: hidden;
 
     @media (max-width: $breakpoint-lg) {
@@ -84,9 +83,8 @@
       animation: fade-slide-up 0.8s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
 
       background: linear-gradient(135deg,
-        oklch(0.985 0 0) 0%,
-        oklch(0.856 0 0) 100%
-      );
+          oklch(0.985 0 0) 0%,
+          oklch(0.856 0 0) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -115,9 +113,17 @@
       animation: fade-slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
       transition: transform 0.3s ease;
 
-      &:nth-child(1) { animation-delay: 0.3s; }
-      &:nth-child(2) { animation-delay: 0.4s; }
-      &:nth-child(3) { animation-delay: 0.5s; }
+      &:nth-child(1) {
+        animation-delay: 0.3s;
+      }
+
+      &:nth-child(2) {
+        animation-delay: 0.4s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.5s;
+      }
 
       &:hover {
         transform: translateX(8px);
@@ -149,9 +155,8 @@
         top: -250px;
         right: -250px;
         background: radial-gradient(circle,
-          oklch(from $color-primary l c h / 0.2) 0%,
-          transparent 70%
-        );
+            oklch(from $color-primary l c h / 0.2) 0%,
+            transparent 70%);
         animation: float-drift 25s ease-in-out infinite;
       }
 
@@ -161,9 +166,8 @@
         bottom: -150px;
         left: -150px;
         background: radial-gradient(circle,
-          oklch(from $color-primary-light l c h / 0.15) 0%,
-          transparent 70%
-        );
+            oklch(from $color-primary-light l c h / 0.15) 0%,
+            transparent 70%);
         animation: float-drift 20s ease-in-out infinite reverse;
       }
 
@@ -173,9 +177,8 @@
         top: 35%;
         left: 15%;
         background: radial-gradient(circle,
-          oklch(from $color-primary-dark l c h / 0.18) 0%,
-          transparent 70%
-        );
+            oklch(from $color-primary-dark l c h / 0.18) 0%,
+            transparent 70%);
         animation: float-orbit 22s ease-in-out infinite;
       }
     }
@@ -219,6 +222,39 @@
     font-size: $text-base;
     color: $color-muted-foreground;
     font-weight: 500;
+  }
+
+  &__notice {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-md;
+    padding: $spacing-lg;
+    margin-bottom: $spacing-xl;
+    border-radius: $radius-lg;
+    border: 1px solid transparent;
+
+    svg {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    &--success {
+      background: oklch(0.97 0.03 154 / 0.9);
+      border-color: oklch(0.78 0.11 154 / 0.55);
+      color: oklch(0.38 0.09 154);
+    }
+  }
+
+  &__notice-title {
+    margin: 0 0 $spacing-xs;
+    font-size: $text-base;
+    font-weight: 700;
+  }
+
+  &__notice-text {
+    margin: 0;
+    font-size: $text-sm;
+    line-height: 1.5;
   }
 
   &__link {
@@ -303,7 +339,7 @@
       color: $color-primary-foreground;
       background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
       box-shadow: 0 6px 16px oklch(from $color-primary l c h / 0.35),
-                  0 2px 4px oklch(from $color-primary l c h / 0.2);
+        0 2px 4px oklch(from $color-primary l c h / 0.2);
       transform: translateY(-2px);
 
       svg {
@@ -498,7 +534,7 @@
     &:focus-within {
       border-color: $color-primary;
       box-shadow: 0 0 0 4px oklch(from $color-primary l c h / 0.12),
-                  0 4px 12px oklch(from $color-primary l c h / 0.15);
+        0 4px 12px oklch(from $color-primary l c h / 0.15);
       transform: translateY(-2px);
 
       .login__input-icon {
@@ -591,7 +627,7 @@
       width: 0;
       height: 0;
 
-      &:checked + .login__checkbox-mark {
+      &:checked+.login__checkbox-mark {
         background: $color-primary;
         border-color: $color-primary;
         box-shadow: 0 4px 12px oklch(from $color-primary l c h / 0.3);
@@ -602,11 +638,11 @@
         }
       }
 
-      &:focus-visible + .login__checkbox-mark {
+      &:focus-visible+.login__checkbox-mark {
         box-shadow: 0 0 0 4px oklch(from $color-primary l c h / 0.15);
       }
 
-      &:disabled + .login__checkbox-mark {
+      &:disabled+.login__checkbox-mark {
         opacity: 0.5;
         cursor: not-allowed;
       }
@@ -655,7 +691,7 @@
     cursor: pointer;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 6px 20px oklch(from $color-primary l c h / 0.35),
-                0 2px 4px oklch(from $color-primary l c h / 0.2);
+      0 2px 4px oklch(from $color-primary l c h / 0.2);
     position: relative;
     overflow: hidden;
 
@@ -678,7 +714,7 @@
       background: linear-gradient(135deg, $color-primary-light 0%, $color-primary 100%);
       transform: translateY(-3px);
       box-shadow: 0 10px 30px oklch(from $color-primary l c h / 0.45),
-                  0 4px 8px oklch(from $color-primary l c h / 0.25);
+        0 4px 8px oklch(from $color-primary l c h / 0.25);
 
       &::before {
         opacity: 1;
@@ -721,10 +757,9 @@
       flex: 1;
       height: 2px;
       background: linear-gradient(90deg,
-        transparent 0%,
-        $color-border 50%,
-        transparent 100%
-      );
+          transparent 0%,
+          $color-border 50%,
+          transparent 100%);
     }
 
     span {
@@ -797,43 +832,72 @@
 
 // ===== Premium Animations =====
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 12px oklch(from $color-primary l c h / 0.5));
   }
+
   50% {
     filter: drop-shadow(0 0 24px oklch(from $color-primary l c h / 0.8));
   }
 }
 
 @keyframes float-drift {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   33% {
     transform: translate(40px, -50px) scale(1.15);
   }
+
   66% {
     transform: translate(-30px, 40px) scale(0.95);
   }
 }
 
 @keyframes float-orbit {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) rotate(0deg);
   }
+
   50% {
     transform: translate(30px, 30px) rotate(180deg);
   }
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
-  20%, 40%, 60%, 80% { transform: translateX(6px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-6px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(6px);
+  }
 }
 
 @keyframes fade-in {
@@ -841,6 +905,7 @@
     opacity: 0;
     transform: translateY(15px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -852,6 +917,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -872,7 +938,7 @@
   &__role-tab {
     &--active {
       box-shadow: 0 6px 16px oklch(from $color-primary l c h / 0.5),
-                  0 2px 4px oklch(from $color-primary l c h / 0.3);
+        0 2px 4px oklch(from $color-primary l c h / 0.3);
     }
   }
 

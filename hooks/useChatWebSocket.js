@@ -17,7 +17,6 @@ const getStoredAccessToken = () => {
 
 export function useChatWebSocket({
   threadId,
-  sessionKey = null,
   onMessage,
   onConnect,
   onDisconnect,
@@ -62,10 +61,9 @@ export function useChatWebSocket({
 
     try {
       const token = getStoredAccessToken();
-      const guestSessionKey = sessionKey || (allowGuestSessionFallback ? localStorage.getItem('guestSessionKey') || '' : '');
-      const isGuestConnection = !token && !!guestSessionKey;
+      const isGuestConnection = !token;
 
-      if (!token && !guestSessionKey) {
+      if (!token && !allowGuestSessionFallback) {
         shouldReconnect.current = false;
         setError('Missing chat credentials');
         return;
@@ -73,7 +71,6 @@ export function useChatWebSocket({
 
       const wsUrl = buildThreadWebSocketUrl({
         threadId,
-        sessionKey: guestSessionKey,
         token,
       });
 
@@ -108,6 +105,12 @@ export function useChatWebSocket({
       ws.current.onclose = (event) => {
         ws.current = null;
         setIsConnected(false);
+        console.info('[chat-ws] close', {
+          threadId,
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+        });
         onDisconnectRef.current?.();
 
         if (event.code === 4005) {
@@ -138,7 +141,7 @@ export function useChatWebSocket({
       console.error('Failed to create WebSocket:', err);
       setError('Failed to establish connection');
     }
-  }, [allowGuestSessionFallback, clearReconnectTimeout, enabled, threadId, sessionKey]);
+  }, [allowGuestSessionFallback, clearReconnectTimeout, enabled, threadId]);
 
   const disconnect = useCallback(() => {
     shouldReconnect.current = false;

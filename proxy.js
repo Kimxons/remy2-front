@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 /**
  * Protected routes that require authentication
- * Note: /threads is NOT protected to allow guest users with session keys
+ * Note: guest chat routes remain public so guests can access their inbox
  */
 const protectedRoutes = [
   '/dashboard',
@@ -10,7 +10,6 @@ const protectedRoutes = [
   '/settings',
   '/orders',
   '/earnings',
-  '/messages',
   '/post-job',
 ]
 

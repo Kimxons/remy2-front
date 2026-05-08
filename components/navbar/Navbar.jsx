@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import httpClient from "../../api/httpClient";
+import guestSessionService from "../../services/guestSessionService";
 import { clearAuthSessionCookie } from "../../utils/cookies";
 import { subscribeToPlatformRealtime } from "../../utils/realtime";
 import "./Navbar.scss";
@@ -12,6 +14,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [guestInboxUnreadCount, setGuestInboxUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -131,9 +134,35 @@ const Navbar = () => {
     setUnreadNotifications(0);
   }, []);
 
+  const fetchGuestInboxSummary = useCallback(async () => {
+    const guestSessionKey = guestSessionService.getSessionKey();
+    if (!guestSessionKey || user) {
+      setGuestInboxUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await httpClient.get("/chat/guest-threads/", {
+        skipAuthHeader: true,
+        suppressConsoleError: true,
+      });
+      const threads = response?.data?.results || response?.data?.threads || response?.data || [];
+      const unreadTotal = Array.isArray(threads)
+        ? threads.reduce((count, thread) => count + Number(thread?.unread_count || 0), 0)
+        : 0;
+      setGuestInboxUnreadCount(unreadTotal);
+    } catch {
+      setGuestInboxUnreadCount(0);
+    }
+  }, [user]);
+
   useEffect(() => {
     fetchUserProfile();
   }, [fetchUserProfile]);
+
+  useEffect(() => {
+    fetchGuestInboxSummary();
+  }, [fetchGuestInboxSummary]);
 
   useEffect(() => {
     fetchUnreadNotifications();
@@ -149,6 +178,7 @@ const Navbar = () => {
 
       liveRefreshTimeoutRef.current = window.setTimeout(() => {
         fetchUnreadNotifications();
+        fetchGuestInboxSummary();
       }, 150);
     });
 
@@ -158,7 +188,7 @@ const Navbar = () => {
       }
       unsubscribe();
     };
-  }, [fetchUnreadNotifications]);
+  }, [fetchGuestInboxSummary, fetchUnreadNotifications]);
 
   useEffect(() => {
     window.addEventListener("auth:changed", fetchUnreadNotifications);
@@ -166,6 +196,13 @@ const Navbar = () => {
       window.removeEventListener("auth:changed", fetchUnreadNotifications);
     };
   }, [fetchUnreadNotifications]);
+
+  useEffect(() => {
+    window.addEventListener("auth:changed", fetchGuestInboxSummary);
+    return () => {
+      window.removeEventListener("auth:changed", fetchGuestInboxSummary);
+    };
+  }, [fetchGuestInboxSummary]);
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -275,6 +312,7 @@ const Navbar = () => {
 
   const navLinks = [
     { path: "/categories", activePath: "/categories", label: "Chat" },
+    { path: "/messages", activePath: "/messages", label: "Inbox" },
     { path: "/about", activePath: "/about", label: "About" },
   ];
 
@@ -285,6 +323,7 @@ const Navbar = () => {
 
   const isActivePath = (path) => pathname === path;
   const isActiveNavLink = (link) => isActivePath(link.activePath || link.path);
+  const guestInboxBadge = guestInboxUnreadCount > 99 ? "99+" : guestInboxUnreadCount;
 
   return (
     <>
@@ -304,6 +343,9 @@ const Navbar = () => {
                   className={`navbar__nav-link ${isActiveNavLink(link) ? "navbar__nav-link--active" : ""}`}
                 >
                   {link.label}
+                  {link.path === "/messages" && guestInboxUnreadCount > 0 ? (
+                    <span className="navbar__badge">{guestInboxBadge}</span>
+                  ) : null}
                 </Link>
               ))}
             </div>
@@ -547,6 +589,9 @@ const Navbar = () => {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
+                {link.path === "/messages" && guestInboxUnreadCount > 0 ? (
+                  <span className="navbar__mobile-badge">{guestInboxBadge}</span>
+                ) : null}
               </Link>
             ))}
 

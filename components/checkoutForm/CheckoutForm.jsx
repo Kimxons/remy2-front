@@ -2,16 +2,16 @@
 
 import React, { useState } from "react";
 import httpClient from "../../api/httpClient";
-import { CreditCard, ShieldCheck, Loader2, Mail } from "lucide-react"; 
+import { CreditCard, ShieldCheck, Loader2, Mail } from "lucide-react";
 
-const CheckoutForm = ({ jobId, amountUSD, sessionKey }) => { // sessionKey added as prop
+const CheckoutForm = ({ jobId, amountUSD }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [email, setEmail] = useState(""); // New state for guest email
 
   const handleCardPayment = async (e) => {
     e.preventDefault();
-    
+
     // Validation: Ensure email is provided for guests
     if (!email) {
       setError("Please enter an email address for your receipt.");
@@ -22,13 +22,9 @@ const CheckoutForm = ({ jobId, amountUSD, sessionKey }) => { // sessionKey added
     setError(null);
 
     try {
-      // 1. Updated Endpoint to /payments/initialize/
-      // 2. Included session_key in params for guest verification
       const res = await httpClient.post("/payments/initialize/", {
         job_id: jobId,
         client_email: email, // Sending the email captured in the form
-      }, {
-        params: sessionKey ? { session_key: sessionKey } : {}
       });
 
       // 3. Match your backend response key: 'authorization_url'
