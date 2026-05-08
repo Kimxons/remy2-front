@@ -127,7 +127,11 @@ const chatApi = {
   },
 
   updateOfferStatus: async (threadId, offerId, decision, sessionKey = null) => {
-    const normalizedDecision = String(decision || "").toLowerCase();
+    const decisionValue =
+      decision && typeof decision === "object"
+        ? decision.decision || decision.offer_status || ""
+        : decision;
+    const normalizedDecision = String(decisionValue || "").toLowerCase();
     const isAccept =
       normalizedDecision === "accepted" ||
       normalizedDecision === "accept";
