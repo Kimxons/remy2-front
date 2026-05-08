@@ -170,6 +170,7 @@ const Navbar = () => {
   useEffect(() => {
     const syncAuthState = () => {
       const userString = localStorage.getItem("currentUser");
+
       if (!userString) {
         setUser(null);
         setUnreadNotifications(0);
@@ -273,17 +274,17 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { path: "/categories", label: "Categories" },
-    { path: "/about", label: "About" },
+    { path: "/categories", activePath: "/categories", label: "Chat" },
+    { path: "/about", activePath: "/about", label: "About" },
   ];
 
   const authenticatedNavLinks = [
     { path: "/dashboard", label: "Dashboard" },
-    { path: "/messages", label: "Chat" },
     { path: "/orders", label: "Orders" },
   ];
 
   const isActivePath = (path) => pathname === path;
+  const isActiveNavLink = (link) => isActivePath(link.activePath || link.path);
 
   return (
     <>
@@ -298,9 +299,9 @@ const Navbar = () => {
             <div className="navbar__nav">
               {navLinks.map((link) => (
                 <Link
-                  key={link.path}
+                  key={`${link.label}-${link.path}`}
                   href={link.path}
-                  className={`navbar__nav-link ${isActivePath(link.path) ? "navbar__nav-link--active" : ""}`}
+                  className={`navbar__nav-link ${isActiveNavLink(link) ? "navbar__nav-link--active" : ""}`}
                 >
                   {link.label}
                 </Link>
@@ -540,7 +541,7 @@ const Navbar = () => {
           {!user &&
             navLinks.map((link) => (
               <Link
-                key={link.path}
+                key={`${link.label}-${link.path}`}
                 href={link.path}
                 className="navbar__mobile-link"
                 onClick={() => setMobileMenuOpen(false)}

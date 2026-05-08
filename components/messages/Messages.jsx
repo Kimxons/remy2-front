@@ -6,6 +6,7 @@ import Link from "next/link"
 import moment from "moment"
 import httpClient from "../../api/httpClient"
 import { subscribeToPlatformRealtime } from "../../utils/realtime"
+import { guestSessionService } from "../../services/guestSessionService"
 import "./Messages.scss"
 
 const Messages = () => {
@@ -33,17 +34,46 @@ const Messages = () => {
     setHasHydrated(true)
   }, [])
 
+  useEffect(() => {
+    if (!hasHydrated || hasAccessToken || guestSessionKey) {
+      return
+    }
+
+    let cancelled = false
+
+    const ensureGuestSession = async () => {
+      try {
+        const initialized = await guestSessionService.initializeSession()
+        if (cancelled) return
+        setGuestSessionKey(initialized?.sessionKey || guestSessionService.getSessionKey())
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to initialize guest session for messages:", error)
+        }
+      }
+    }
+
+    ensureGuestSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [guestSessionKey, hasAccessToken, hasHydrated])
+
   const currentUserId = currentUser?.id || currentUser?.pk || currentUser?.user_id || null
   const isAuthenticatedUser = Boolean(currentUserId || currentUser?.token || hasAccessToken)
   const isGuestAccess = !isAuthenticatedUser && guestSessionKey
-  const authQuery = isGuestAccess ? `?session_key=${guestSessionKey}` : ""
 
   const { isLoading, error, data, refetch } = useQuery({
     queryKey: ["threads", isGuestAccess, guestSessionKey],
     queryFn: () =>
-      httpClient
-        .get(`/chat/threads/${authQuery}`)
-        .then((res) => res.data.results || res.data.threads || []),
+      isGuestAccess
+        ? httpClient
+          .get("/chat/guest-threads/", { params: { session_key: guestSessionKey } })
+          .then((res) => res.data.results || res.data.threads || res.data || [])
+        : httpClient
+          .get("/chat/threads/")
+          .then((res) => res.data.results || res.data.threads || []),
     enabled: hasHydrated && (isAuthenticatedUser || !!guestSessionKey),
     refetchInterval: 5000,
     retry: 1,

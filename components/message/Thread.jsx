@@ -21,6 +21,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAYMENT_TRACKING_KEY = "pendingPaymentJobId"
 const MIN_PASSWORD_LENGTH = 8
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
+const PAYMENT_INIT_RETRY_DELAYS_MS = [400, 900]
 
 const toAbsoluteUrl = (value) => {
   if (!value || typeof value !== "string") return ""
@@ -104,7 +105,16 @@ const MessageBubble = ({
   ].map((value) => String(value || "").trim()).filter(Boolean)
   const senderNameNormalized = String(m?.sender_name || "").trim().toLowerCase()
   const senderUsernameNormalized = String(m?.sender_username || "").trim().toLowerCase()
+  const currentUserId =
+    currentUser?.id ||
+    currentUser?.user_id ||
+    currentUser?.pk ||
+    currentUser?.user?.id ||
+    currentUser?.user?.user_id ||
+    currentUser?.user?.pk ||
+    null
   const currentUsername = String(currentUser?.username || "").trim().toLowerCase()
+  const currentRole = String(currentUser?.role || currentUser?.user?.role || "").trim().toUpperCase()
 
   const isMine = typeof m.is_mine === "boolean"
     ? m.is_mine
@@ -119,6 +129,31 @@ const MessageBubble = ({
   const contentClasses = isMine ? "thread-message-content thread-message-content--mine" : "thread-message-content thread-message-content--theirs"
 
   if (m.offer) {
+    const createdJob = m.offer?.created_job || {}
+    const freelancerOfferId =
+      createdJob?.freelancer_id ||
+      createdJob?.freelancer?.id ||
+      createdJob?.freelancer?.pk ||
+      m.offer?.freelancer_id ||
+      m.offer?.freelancer?.id ||
+      m.offer?.freelancer?.pk ||
+      null
+    const freelancerOfferUsername = String(
+      createdJob?.freelancer_username ||
+      createdJob?.freelancer?.username ||
+      m.offer?.freelancer_username ||
+      m.offer?.freelancer?.username ||
+      senderUsernameNormalized ||
+      senderNameNormalized ||
+      ""
+    ).trim().toLowerCase()
+    const isFreelancerOfferCreator =
+      (currentUserId != null && freelancerOfferId != null && String(currentUserId) === String(freelancerOfferId)) ||
+      (!!currentUsername && !!freelancerOfferUsername && currentUsername === freelancerOfferUsername)
+    const isOfferCreator = currentRole === "FREELANCER" || currentRole === "ADMIN"
+      ? isFreelancerOfferCreator
+      : isMine
+
     return (
       <div className={containerClasses}>
         <div className={contentClasses}>
@@ -127,8 +162,9 @@ const MessageBubble = ({
             offerId={m.id}
             onAccept={onAcceptOffer}
             onReject={onRejectOffer}
-            canRespond={!isMine}
+            canRespond={!isOfferCreator}
             isPending={m.offer.status === 'pending'}
+            isCreator={isOfferCreator}
           />
           <div className="text-[11px] text-gray-500 mt-1 text-right">
             {m.created_at
@@ -927,19 +963,51 @@ export default function Thread() {
                 return
               }
 
-              paymentOptions.sessionKey = sessionKey
-              paymentOptions.clientEmail = email
-              paymentOptions.clientPassword = password
-              paymentOptions.clientPasswordConfirm = confirmPassword
+              paymentOptions.session_key = sessionKey
+              paymentOptions.client_email = email
+              paymentOptions.client_password = password
+              paymentOptions.client_password_confirm = confirmPassword
             }
 
-            const paymentData = await chatApi.initializeJobPayment(
-              data.job_created.id,
-              paymentOptions
-            )
-            if (paymentData.authorizationUrl) {
+            if (paymentOptions.client_email) {
+              savePendingClientEmailForJob(data.job_created.id, paymentOptions.client_email)
+            }
+
+            if (paymentOptions.session_key == null) {
+              paymentOptions.session_key = localStorage.getItem("guestSessionKey") || undefined
+            }
+
+            let paymentData = null
+            let paymentInitError = null
+
+            for (const delay of [0, ...PAYMENT_INIT_RETRY_DELAYS_MS]) {
+              if (delay > 0) {
+                await new Promise((resolve) => window.setTimeout(resolve, delay))
+              }
+
+              try {
+                paymentData = await chatApi.initializeJobPayment(
+                  data.job_created.id,
+                  paymentOptions
+                )
+                paymentInitError = null
+                break
+              } catch (error) {
+                paymentInitError = error
+                if (error?.response?.status !== 500) {
+                  throw error
+                }
+              }
+            }
+
+            if (paymentInitError) {
+              throw paymentInitError
+            }
+
+            const redirectUrl = paymentData?.authorization_url || paymentData?.authorizationUrl
+            if (redirectUrl) {
               localStorage.setItem(PAYMENT_TRACKING_KEY, String(data.job_created.id))
-              window.location.href = paymentData.authorizationUrl
+              window.location.href = redirectUrl
               return
             }
           } catch (error) {
@@ -950,7 +1018,7 @@ export default function Thread() {
               data.client_password ||
               data.client_email ||
               data.detail ||
-              "Failed to initialize payment. Use the Pay Now button on this offer to retry."
+              "Failed to initialize payment. Retry Payment."
             )
           }
         }

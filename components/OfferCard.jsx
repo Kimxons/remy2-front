@@ -60,7 +60,7 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
         const response = await httpClient.get(`/orders/jobs/${jobId}/`)
         if (!isMounted) return
         setLiveJob(response.data)
-      } catch (error) {}
+      } catch (error) { }
     }
     fetchJobStatus()
     intervalId = window.setInterval(fetchJobStatus, 8000)
@@ -122,7 +122,7 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
             clearPaymentParams()
             return
           }
-        } catch (error) {}
+        } catch (error) { }
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
       setPaymentSyncState("")
@@ -141,15 +141,52 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
   const hasConfirmedPayment = paymentSyncState === "success" || isLocallyConfirmedPaid
   const paymentRequired = !hasConfirmedPayment && initialPaymentRequired && !PAYMENT_SUCCESS_STATUSES.includes(jobStatus)
   const isPaymentFailed = jobStatus === "PAYMENT_FAILED"
+  const isAwaitingClientPayment = isCreator && paymentRequired
+  const showClientPaymentAction = !isCreator && paymentRequired
+
+  const getJobStateContent = () => {
+    if (showClientPaymentAction) {
+      return {
+        title: isPaymentFailed ? "Complete payment to lock in this project" : "You're one step away from starting",
+        statusLabel: "Offer accepted",
+        helperText:
+          paymentSyncState === "syncing"
+            ? "We are confirming your payment now. This should only take a moment."
+            : "Your freelancer has accepted. Complete payment now to confirm the order and start work right away.",
+        ctaLabel: isInitializingPayment ? "Loading..." : isPaymentFailed ? "Retry Payment" : "Pay Securely Now",
+      }
+    }
+
+    if (isAwaitingClientPayment) {
+      return {
+        title: "Offer accepted. Waiting for client payment",
+        statusLabel: "Accepted",
+        helperText:
+          "Nice work. The client must complete payment before the project is fully confirmed and work can begin.",
+        ctaLabel: null,
+      }
+    }
+
+    return {
+      title: isCreator ? "Project confirmed" : "Payment confirmed",
+      statusLabel: jobStatusDisplay,
+      helperText: isCreator
+        ? "Payment is confirmed. You can begin work as soon as the client shares any final details."
+        : "Your payment is confirmed and the project is ready to move forward.",
+      ctaLabel: null,
+    }
+  }
+
+  const jobStateContent = getJobStateContent()
 
   const handleAccept = async () => {
     setResponding(true)
-    try { await onAccept(offer.id) } catch (error) {} finally { setResponding(false) }
+    try { await onAccept(offer.id) } catch (error) { } finally { setResponding(false) }
   }
 
   const handleReject = async () => {
     setResponding(true)
-    try { await onReject(offer.id) } catch (error) {} finally { setResponding(false) }
+    try { await onReject(offer.id) } catch (error) { } finally { setResponding(false) }
   }
 
   const handlePayNowTrigger = () => {
@@ -164,7 +201,7 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
       setGuestEmail(getPendingClientEmailForJob(jobId) || "")
       setShowGuestForm(true)
     } else {
-      processPayment({}) 
+      processPayment({})
     }
   }
 
@@ -180,7 +217,7 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
       const ids = new Set(arr.map(String))
       ids.delete(String(jobId))
       localStorage.setItem(CONFIRMED_PAID_JOBS_KEY, JSON.stringify(Array.from(ids)))
-    } catch {}
+    } catch { }
 
     try {
 
@@ -192,13 +229,13 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
         client_password_confirm: onboardingData.client_password_confirm,
       }
       const paymentData = await chatApi.initializeJobPayment(jobId, paymentOptions)
-      
+
       // backend returns 'authorization_url'
       const redirectUrl = paymentData.authorization_url || paymentData.authorizationUrl
 
       if (redirectUrl) {
         if (onboardingData.client_email) {
-            savePendingClientEmailForJob(jobId, onboardingData.client_email)
+          savePendingClientEmailForJob(jobId, onboardingData.client_email)
         }
         localStorage.setItem(PAYMENT_TRACKING_KEY, String(jobId))
         window.location.href = redirectUrl
@@ -262,48 +299,54 @@ const OfferCard = ({ offer, onAccept, onReject, canRespond, isPending, isCreator
       {offer.status === 'accepted' && offer.created_job && (
         <div className="offer-job-created">
           <div className="job-created-header">
-            <h4>{paymentRequired ? "Job Created!" : "Payment Confirmed"}</h4>
-            <p className="job-status">Status: <strong>{jobStatusDisplay}</strong></p>
+            <h4>{jobStateContent.title}</h4>
+            <p className="job-status">Status: <strong>{jobStateContent.statusLabel}</strong></p>
           </div>
 
-          {paymentRequired && (
+          <p className="job-created-copy">{jobStateContent.helperText}</p>
+
+          {(showClientPaymentAction || isAwaitingClientPayment) && (
             <div className="payment-required-section">
-              {!showGuestForm ? (
+              {showClientPaymentAction && !showGuestForm ? (
                 <>
                   <div className="payment-warning">
                     <span>
-                      {paymentSyncState === "syncing" ? "Confirming..." : "Payment required to start work"}
+                      {paymentSyncState === "syncing" ? "Confirming payment..." : "Secure payment unlocks the project instantly"}
                     </span>
                   </div>
                   <button onClick={handlePayNowTrigger} disabled={isInitializingPayment} className="btn-pay-now">
-                    {isInitializingPayment ? "Loading..." : isPaymentFailed ? "Retry Payment" : "Pay Now"}
+                    {jobStateContent.ctaLabel}
                   </button>
                 </>
-              ) : (
+              ) : showClientPaymentAction ? (
                 <form onSubmit={handleGuestFormSubmit} className="guest-auth-form">
                   <div className="auth-row">
-                    <p>Create Account</p>
+                    <p>Secure checkout</p>
                     <button type="button" onClick={() => setShowGuestForm(false)}>✕</button>
                   </div>
-                  <input 
+                  <input
                     type="email" placeholder="Email Address" required
                     value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)}
                   />
                   <div className="auth-grid">
-                    <input 
+                    <input
                       type="password" placeholder="Password" required
                       value={guestPassword} onChange={(e) => setGuestPassword(e.target.value)}
                     />
-                    <input 
+                    <input
                       type="password" placeholder="Confirm" required
                       value={guestPasswordConfirm} onChange={(e) => setGuestPasswordConfirm(e.target.value)}
                     />
                   </div>
                   {formError && <p className="auth-error">{formError}</p>}
                   <button type="submit" disabled={isInitializingPayment} className="btn-auth-submit">
-                    {isInitializingPayment ? "Initializing..." : "Secure & Pay Now"}
+                    {isInitializingPayment ? "Preparing secure checkout..." : "Continue to Secure Payment"}
                   </button>
                 </form>
+              ) : (
+                <div className="payment-warning">
+                  <span>We’ll notify you as soon as the client completes payment.</span>
+                </div>
               )}
             </div>
           )}
