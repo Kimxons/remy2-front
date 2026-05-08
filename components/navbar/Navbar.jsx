@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { clearAuthSessionCookie } from "../../utils/cookies";
+import { subscribeToPlatformRealtime } from "../../utils/realtime";
 import "./Navbar.scss";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -18,6 +19,7 @@ const Navbar = () => {
 
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const liveRefreshTimeoutRef = useRef(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -135,8 +137,27 @@ const Navbar = () => {
 
   useEffect(() => {
     fetchUnreadNotifications();
-    const interval = window.setInterval(fetchUnreadNotifications, 30000);
+    const interval = window.setInterval(fetchUnreadNotifications, 5000);
     return () => window.clearInterval(interval);
+  }, [fetchUnreadNotifications]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPlatformRealtime(() => {
+      if (liveRefreshTimeoutRef.current) {
+        window.clearTimeout(liveRefreshTimeoutRef.current);
+      }
+
+      liveRefreshTimeoutRef.current = window.setTimeout(() => {
+        fetchUnreadNotifications();
+      }, 150);
+    });
+
+    return () => {
+      if (liveRefreshTimeoutRef.current) {
+        window.clearTimeout(liveRefreshTimeoutRef.current);
+      }
+      unsubscribe();
+    };
   }, [fetchUnreadNotifications]);
 
   useEffect(() => {
@@ -253,7 +274,13 @@ const Navbar = () => {
 
   const navLinks = [
     { path: "/categories", label: "Categories" },
-    {path: "/about", label: "About"},
+    { path: "/about", label: "About" },
+  ];
+
+  const authenticatedNavLinks = [
+    { path: "/dashboard", label: "Dashboard" },
+    { path: "/messages", label: "Chat" },
+    { path: "/orders", label: "Orders" },
   ];
 
   const isActivePath = (path) => pathname === path;
@@ -281,6 +308,25 @@ const Navbar = () => {
             </div>
           )}
 
+          {user && (
+            <div className="navbar__nav">
+              {authenticatedNavLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  href={link.path === "/dashboard" ? getDashboardPath() : link.path}
+                  className={`navbar__nav-link ${isActivePath(link.path) ? "navbar__nav-link--active" : ""}`}
+                >
+                  {link.label}
+                  {link.path === "/messages" && user.unread_messages > 0 ? (
+                    <span className="navbar__badge">
+                      {user.unread_messages > 99 ? "99+" : user.unread_messages}
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
+          )}
+
           <div className="navbar__actions">
             {loading ? (
               <div className="navbar__skeleton">
@@ -288,7 +334,7 @@ const Navbar = () => {
               </div>
             ) : user ? (
               <>
-                <Link href="/messages" className="navbar__icon-btn" aria-label="Messages">
+                <Link href="/messages" className="navbar__icon-btn" aria-label="Chat">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
@@ -357,6 +403,13 @@ const Navbar = () => {
                           Dashboard
                         </Link>
 
+                        <Link href="/messages" className="navbar__dropdown-item">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                          Chat
+                        </Link>
+
                         <Link href="/profile" className="navbar__dropdown-item">
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -364,7 +417,7 @@ const Navbar = () => {
                           </svg>
                           Profile
                         </Link>
-                        
+
                         {user.role !== "CLIENT" && (
                           <Link href="/orders" className="navbar__dropdown-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -377,7 +430,7 @@ const Navbar = () => {
                           </Link>
                         )}
 
-                        
+
                         {user.is_freelancer && (
                           <Link href="/earnings" className="navbar__dropdown-item">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -516,7 +569,7 @@ const Navbar = () => {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
-                Messages
+                Chat
                 {user.unread_messages > 0 && (
                   <span className="navbar__mobile-badge">{user.unread_messages}</span>
                 )}

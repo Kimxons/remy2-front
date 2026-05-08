@@ -13,6 +13,7 @@ import MessageCenter from "../../components/MessageCenter"
 import OfferManagement from "../../components/OfferManagement"
 import EmptyState from "../../components/EmptyState"
 import LoadingState from "../../components/LoadingState"
+import { subscribeToPlatformRealtime } from "../../utils/realtime"
 import "./Dashboard.scss"
 
 /**
@@ -62,24 +63,24 @@ const Dashboard = () => {
       stats: {
         activeOrders: Number(
           statsSource.activeOrders ??
-            statsSource.active_orders ??
-            statsSource.activeJobs ??
-            statsSource.active_jobs ??
-            0
+          statsSource.active_orders ??
+          statsSource.activeJobs ??
+          statsSource.active_jobs ??
+          0
         ),
         completed: Number(
           statsSource.completed ??
-            statsSource.completed_orders ??
-            statsSource.completedJobs ??
-            statsSource.completed_jobs ??
-            0
+          statsSource.completed_orders ??
+          statsSource.completedJobs ??
+          statsSource.completed_jobs ??
+          0
         ),
         earnings: Number(
           statsSource.earnings ??
-            statsSource.total_earnings ??
-            statsSource.revenue ??
-            statsSource.total_revenue ??
-            0
+          statsSource.total_earnings ??
+          statsSource.revenue ??
+          statsSource.total_revenue ??
+          0
         ),
         rating: Number(statsSource.rating ?? statsSource.avg_rating ?? 0),
         avgResponseTime:
@@ -92,15 +93,15 @@ const Dashboard = () => {
       recentJobs: Array.isArray(data.recentJobs)
         ? data.recentJobs
         : Array.isArray(data.recent_jobs)
-        ? data.recent_jobs
-        : Array.isArray(data.jobs)
-        ? data.jobs
-        : [],
+          ? data.recent_jobs
+          : Array.isArray(data.jobs)
+            ? data.jobs
+            : [],
       notifications: Array.isArray(data.notifications)
         ? data.notifications
         : Array.isArray(data.recent_notifications)
-        ? data.recent_notifications
-        : [],
+          ? data.recent_notifications
+          : [],
       timestamp: data.timestamp || new Date().toISOString(),
     }
   }
@@ -121,17 +122,44 @@ const Dashboard = () => {
   }
 
   // ===== State Management =====
-  const storedUser = useMemo(() => {
-    if (typeof window === 'undefined') return null;
+  const [storedUser, setStoredUser] = useState(null)
+  const [authResolved, setAuthResolved] = useState(false)
+
+  const syncStoredUser = useCallback(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const accessToken = localStorage.getItem("accessToken") || localStorage.getItem("token")
+    if (!accessToken) {
+      setStoredUser(null)
+      setAuthResolved(true)
+      return
+    }
 
     try {
       const userString = localStorage.getItem("currentUser")
-      return userString ? JSON.parse(userString) : null
+      const nextUser = userString ? JSON.parse(userString) : null
+      setStoredUser(nextUser)
     } catch (error) {
       console.error("Failed to parse user from localStorage:", error)
-      return null
+      setStoredUser(null)
+    } finally {
+      setAuthResolved(true)
     }
   }, [])
+
+  useEffect(() => {
+    syncStoredUser()
+
+    window.addEventListener("storage", syncStoredUser)
+    window.addEventListener("auth:changed", syncStoredUser)
+
+    return () => {
+      window.removeEventListener("storage", syncStoredUser)
+      window.removeEventListener("auth:changed", syncStoredUser)
+    }
+  }, [syncStoredUser])
 
   const userRole = storedUser?.role
 
@@ -146,6 +174,8 @@ const Dashboard = () => {
     )
   }, [storedUser])
 
+  const isAuthenticated = Boolean(storedUser && userRole && hasToken)
+
   const userName = storedUser?.username || 'User'
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -159,20 +189,22 @@ const Dashboard = () => {
   const isClient = userRole === "CLIENT"
 
   // ===== Auto-refresh Configuration =====
-  const REFETCH_INTERVAL = 30000 // 30 seconds
+  const REFETCH_INTERVAL = 5000 // 5 seconds fallback when no live event is available
   const MAX_RETRY_ATTEMPTS = 3
 
   // ===== Authentication Check =====
   useEffect(() => {
-    // Only redirect if we definitively have no authentication
-    // If we have a user object with a role, consider them authenticated
-    if (!storedUser || !userRole) {
+    if (!authResolved) {
+      return
+    }
+
+    if (!isAuthenticated) {
       console.warn("No user data found, redirecting to login")
-      router.push("/login", { replace: true })
+      router.replace("/login")
     } else {
       console.log("Dashboard: User authenticated", { username: userName, role: userRole, hasToken })
     }
-  }, [storedUser, userRole, router, userName, hasToken])
+  }, [authResolved, hasToken, isAuthenticated, router, userName, userRole])
 
   // ===== Dashboard Summary Fetch with Error Handling =====
   const fetchDashboardSummary = useCallback(async () => {
@@ -225,7 +257,7 @@ const Dashboard = () => {
   } = useQuery({
     queryKey: ["chatThreads", userRole],
     queryFn: chatApi.getThreads,
-    enabled: !!userRole && userRole !== "GUEST",
+    enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
     refetchInterval: REFETCH_INTERVAL,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -273,7 +305,7 @@ const Dashboard = () => {
 
       return collected
     },
-    enabled: !!userRole && userRole !== "GUEST",
+    enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
     refetchInterval: REFETCH_INTERVAL,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -282,7 +314,7 @@ const Dashboard = () => {
   const { data: unreadCountData } = useQuery({
     queryKey: ["dashboardUnreadCount", userRole],
     queryFn: chatApi.getUnreadCount,
-    enabled: !!userRole && userRole !== "GUEST",
+    enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
     refetchInterval: REFETCH_INTERVAL,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -297,7 +329,7 @@ const Dashboard = () => {
   } = useQuery({
     queryKey: ["pendingOffers", userRole],
     queryFn: chatApi.getPendingOffers,
-    enabled: isFreelancer,
+    enabled: isAuthenticated && isFreelancer,
     refetchInterval: REFETCH_INTERVAL,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -313,6 +345,16 @@ const Dashboard = () => {
     () => pendingOffersData?.pending_offers || [],
     [pendingOffersData]
   )
+
+  useEffect(() => {
+    return subscribeToPlatformRealtime(() => {
+      fetchDashboardSummary()
+      refetchThreads()
+      refetchJobs()
+      refetchOffers()
+      queryClient.invalidateQueries({ queryKey: ["dashboardUnreadCount"] })
+    })
+  }, [fetchDashboardSummary, queryClient, refetchJobs, refetchOffers, refetchThreads])
 
   const computedStats = useMemo(() => {
     const fallbackStats = summaryData.stats || {}
@@ -521,6 +563,14 @@ const Dashboard = () => {
   }, [])
 
   // ===== Render: Loading State =====
+  if (!authResolved) {
+    return <LoadingState fullScreen message="Checking your session..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
+
   if (summaryLoading && !summaryData.timestamp) {
     return <LoadingState fullScreen message="Loading your dashboard..." />
   }
@@ -572,7 +622,7 @@ const Dashboard = () => {
         </header>
 
         {/* Stats Section */}
-        
+
         {!isClient && (
           <section className="stats-section">
             <DashboardStats stats={computedStats} userRole={userRole} />
@@ -584,10 +634,10 @@ const Dashboard = () => {
           <div className="section-header">
             <h2 className="section-title">Recent Activity</h2>
             {notifications.length > 5 && (
-                <Link href="/notifications" className="section-link">
-                  See All Activity
-                </Link>
-              )}
+              <Link href="/notifications" className="section-link">
+                See All Activity
+              </Link>
+            )}
           </div>
 
           {notifications.length > 0 ? (
@@ -595,9 +645,8 @@ const Dashboard = () => {
               {notifications.slice(0, 5).map((note) => (
                 <li
                   key={note.id}
-                  className={`notification-item ${getNoteClass(note)} ${
-                    note.is_read ? '' : 'unread'
-                  }`}
+                  className={`notification-item ${getNoteClass(note)} ${note.is_read ? '' : 'unread'
+                    }`}
                 >
                   <Link href={note.link || '#'} className="notification-link">
                     <span className="notification-text">{note.text}</span>
@@ -627,10 +676,10 @@ const Dashboard = () => {
           <div className="section-header">
             <h2 className="section-title">Recent Messages</h2>
             {recentThreads.length > 0 && (
-                <Link href="/messages" className="section-link">
-                  Open Inbox
-                </Link>
-              )}
+              <Link href="/messages" className="section-link">
+                Open Inbox
+              </Link>
+            )}
           </div>
 
           <ErrorBoundary fallbackMessage="Failed to load messages">

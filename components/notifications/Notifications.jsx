@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useEffect, useMemo } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import httpClient from "../../api/httpClient"
+import { emitPlatformRealtimeEvent, subscribeToPlatformRealtime } from "../../utils/realtime"
 import "./Notifications.scss"
 
 const toArray = (value) => {
@@ -80,30 +81,36 @@ export default function Notifications() {
     queryKey: ["notifications-page"],
     queryFn: fetchNotifications,
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    refetchInterval: 5000,
     retry: 1,
   })
+
+  useEffect(() => {
+    return subscribeToPlatformRealtime(() => {
+      refetch()
+    })
+  }, [refetch])
 
   const updateNotificationReadMutation = useMutation({
     mutationFn: async ({ noteId, markRead }) => {
       const id = String(noteId)
       const endpointCandidates = markRead
         ? [
-            { method: "put", url: `/users/dashboard/notifications/${id}/read/` },
-            { method: "post", url: `/users/dashboard/notifications/${id}/read/` },
-            { method: "patch", url: `/users/dashboard/notifications/${id}/`, data: { is_read: true } },
-            { method: "put", url: `/notifications/${id}/read/` },
-            { method: "post", url: `/notifications/${id}/read/` },
-            { method: "patch", url: `/notifications/${id}/`, data: { is_read: true } },
-          ]
+          { method: "put", url: `/users/dashboard/notifications/${id}/read/` },
+          { method: "post", url: `/users/dashboard/notifications/${id}/read/` },
+          { method: "patch", url: `/users/dashboard/notifications/${id}/`, data: { is_read: true } },
+          { method: "put", url: `/notifications/${id}/read/` },
+          { method: "post", url: `/notifications/${id}/read/` },
+          { method: "patch", url: `/notifications/${id}/`, data: { is_read: true } },
+        ]
         : [
-            { method: "put", url: `/users/dashboard/notifications/${id}/unread/` },
-            { method: "post", url: `/users/dashboard/notifications/${id}/unread/` },
-            { method: "patch", url: `/users/dashboard/notifications/${id}/`, data: { is_read: false } },
-            { method: "put", url: `/notifications/${id}/unread/` },
-            { method: "post", url: `/notifications/${id}/unread/` },
-            { method: "patch", url: `/notifications/${id}/`, data: { is_read: false } },
-          ]
+          { method: "put", url: `/users/dashboard/notifications/${id}/unread/` },
+          { method: "post", url: `/users/dashboard/notifications/${id}/unread/` },
+          { method: "patch", url: `/users/dashboard/notifications/${id}/`, data: { is_read: false } },
+          { method: "put", url: `/notifications/${id}/unread/` },
+          { method: "post", url: `/notifications/${id}/unread/` },
+          { method: "patch", url: `/notifications/${id}/`, data: { is_read: false } },
+        ]
 
       for (const candidate of endpointCandidates) {
         try {
@@ -128,6 +135,12 @@ export default function Notifications() {
             ? { ...item, is_read: Boolean(markRead) }
             : item
         )
+      })
+      emitPlatformRealtimeEvent({
+        type: "notification-state",
+        noteId,
+        markRead,
+        source: "notifications-page",
       })
       return { previousData }
     },

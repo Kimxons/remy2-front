@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import moment from "moment"
 import httpClient from "../../api/httpClient"
+import { subscribeToPlatformRealtime } from "../../utils/realtime"
 import "./Messages.scss"
 
 const Messages = () => {
@@ -37,15 +38,45 @@ const Messages = () => {
   const isGuestAccess = !isAuthenticatedUser && guestSessionKey
   const authQuery = isGuestAccess ? `?session_key=${guestSessionKey}` : ""
 
-  const { isLoading, error, data } = useQuery({
+  const { isLoading, error, data, refetch } = useQuery({
     queryKey: ["threads", isGuestAccess, guestSessionKey],
     queryFn: () =>
       httpClient
         .get(`/chat/threads/${authQuery}`)
         .then((res) => res.data.results || res.data.threads || []),
     enabled: hasHydrated && (isAuthenticatedUser || !!guestSessionKey),
+    refetchInterval: 5000,
     retry: 1,
   })
+
+  useEffect(() => {
+    return subscribeToPlatformRealtime((event) => {
+      if (event?.threadId && event?.type === "message") {
+        queryClient.setQueryData(["threads", isGuestAccess, guestSessionKey], (old) => {
+          const list = Array.isArray(old) ? old : []
+          return list.map((thread) => {
+            if (String(thread?.id) !== String(event.threadId)) {
+              return thread
+            }
+
+            const nextUnreadCount = event.isIncoming
+              ? Number(thread?.unread_count || 0) + 1
+              : Number(thread?.unread_count || 0)
+
+            return {
+              ...thread,
+              unread_count: nextUnreadCount,
+              updated_at: event.message?.created_at || event.message?.timestamp || new Date().toISOString(),
+              last_message_preview: event.message?.message || thread?.last_message_preview || "",
+              last_message: event.message || thread?.last_message,
+            }
+          })
+        })
+      }
+
+      refetch()
+    })
+  }, [guestSessionKey, isGuestAccess, queryClient, refetch])
 
   const markReadMutation = useMutation({
     mutationFn: ({ id, isGuestThread }) => {

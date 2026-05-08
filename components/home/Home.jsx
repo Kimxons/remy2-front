@@ -8,72 +8,84 @@ import "./Home.scss";
 const Home = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const [guestSessionKey, setGuestSessionKey] = useState(null);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const router = useRouter();
-
-    useEffect(() => {
-    const userString = localStorage.getItem("currentUser");
-    if (userString) {
-        try {
-            const user = JSON.parse(userString);
-            if (["CLIENT", "FREELANCER"].includes(user.role)) {
-                setCurrentUser(user);
-            }
-        } catch (error) {
-            console.error("Failed to parse user data from localStorage:", error);
-        }
-    }
-
-    const existingSession = localStorage.getItem("guestSessionKey");
-    if (existingSession) {
-        setGuestSessionKey(existingSession);
-           return;
-    }
-
-    const createGuestSession = async () => {
-        try {
-            const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-            
-            const res = await fetch(`${API_BASE}/api/users/csrf-and-session/`, {
-                method: "GET",
-                credentials: "include", 
-            });
-    
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
-            const data = await res.json();
-            const key = data.sessionId || data.session_key || data.sessionid;
-    
-            if (key) {
-                localStorage.setItem("guestSessionKey", key);
-                setGuestSessionKey(key);
-            }
-        } catch (err) {
-            console.error("Guest session failed:", err);
-        }
-    };
-    
-    createGuestSession();
-
-    }, []);
-    
-    const isClient = currentUser?.role === "CLIENT";
-    const isFreelancer = currentUser?.role === "FREELANCER";
 
     const getDashboardPath = (role) => {
         switch (role) {
             case "CLIENT":
-                return "/dashboard";
             case "FREELANCER":
                 return "/dashboard";
+            case "ADMIN":
+            case "STAFF":
+                return "/admin";
             default:
                 return "/";
         }
     };
 
+    useEffect(() => {
+        const userString = localStorage.getItem("currentUser");
+        if (userString) {
+            try {
+                const user = JSON.parse(userString);
+                if (["CLIENT", "FREELANCER", "ADMIN", "STAFF"].includes(user.role)) {
+                    setCurrentUser(user);
+                    if (["FREELANCER", "ADMIN", "STAFF"].includes(user.role)) {
+                        setIsRedirecting(true);
+                        router.replace(getDashboardPath(user.role));
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to parse user data from localStorage:", error);
+            }
+        }
+
+        const existingSession = localStorage.getItem("guestSessionKey");
+        if (existingSession) {
+            setGuestSessionKey(existingSession);
+            return;
+        }
+
+        const createGuestSession = async () => {
+            try {
+                const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
+                const res = await fetch(`${API_BASE}/api/users/csrf-and-session/`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const data = await res.json();
+                const key = data.sessionId || data.session_key || data.sessionid;
+
+                if (key) {
+                    localStorage.setItem("guestSessionKey", key);
+                    setGuestSessionKey(key);
+                }
+            } catch (err) {
+                console.error("Guest session failed:", err);
+            }
+        };
+
+        createGuestSession();
+
+    }, [router]);
+
+    const isClient = currentUser?.role === "CLIENT";
+    const isFreelancer = currentUser?.role === "FREELANCER";
+
+    if (isRedirecting) {
+        return null;
+    }
+
     return (
         <div className="home">
             <section className="hero">
-                <div className="hero-content"> 
+                <div className="hero-content">
                     <span className="badge">Premium Content & Writing Services</span>
                     <h1 className="brand">
                         <span className="highlight">Professional Writing & Creative</span> Platform
@@ -90,7 +102,7 @@ const Home = () => {
                                 Go to Dashboard →
                             </Link>
                         )}
-                    
+
                         {(isClient || !currentUser) && (
                             <Link
                                 href={
@@ -147,7 +159,7 @@ const Home = () => {
                     </div>
                 </div>
             </section>
-            
+
             <section className="client-testimonials">
                 <h2 className="section-title">Trusted by Professionals Globally</h2>
                 <div className="testimonial-grid">

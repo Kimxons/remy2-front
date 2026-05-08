@@ -12,13 +12,15 @@ import JobSubmissionForm from "../../components/JobSubmissionForm"
 import "./Thread.scss"
 import OfferForm from "../../components/OfferForm"
 import { savePendingClientEmailForJob } from "../../utils/clientOnboarding"
-import { useChatWebSocket } from "../../hooks/useChatWebSocket" // Adjust this path to where your hook file is
+import { useChatWebSocket } from "../../hooks/useChatWebSocket"
+import { useCallback } from "react"
+import { emitPlatformRealtimeEvent } from "../../utils/realtime"
 
 const MAX_PENDING_ATTACHMENTS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAYMENT_TRACKING_KEY = "pendingPaymentJobId"
 const MIN_PASSWORD_LENGTH = 8
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
 const toAbsoluteUrl = (value) => {
   if (!value || typeof value !== "string") return ""
@@ -173,12 +175,12 @@ export default function Thread() {
   const [latestThreadRating, setLatestThreadRating] = useState(null)
   const bottomRef = useRef(null)
   const fileInputRef = useRef(null)
-  const audioRef = useRef(null)
   const recoveryAttemptedRef = useRef(false)
   const guestRedirectAttemptedRef = useRef(false)
 
   const { isAuthenticated, currentUser } = useAuth()
   const { showSuccess, showError, showInfo } = useNotification()
+
   const formatKES = (value) => `KES ${Number(value || 0).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   const resolveFreelancerEarnings = (jobData) => {
     const candidates = [
@@ -455,16 +457,10 @@ export default function Thread() {
     enabled: shouldConnectWebSocket,
     allowGuestSessionFallback: !isAuthenticated,
     onMessage: (data) => {
-      // 1. Play sound if someone else sends a message
       const isOtherPerson = data.sender_id !== currentUserId &&
         data.sender_username !== currentUsername &&
         data.sender_name !== guestLabel;
 
-      if (isOtherPerson && audioRef.current) {
-        audioRef.current.play().catch(() => { });
-      }
-
-      // 2. WhatsApp-style: Inject the message into the list immediately
       if (data.type === 'chat_message' || data.message) {
         const newMessage = data.message || data;
         queryClient.setQueryData(["messages", id, sessionKey], (oldData) => {
@@ -473,12 +469,29 @@ export default function Thread() {
           if (exists) return oldData;
           return { ...oldData, messages: [...oldData.messages, newMessage] };
         });
+
+        broadcastRealtimeUpdate({
+          type: "message",
+          message: newMessage,
+          isIncoming: isOtherPerson,
+          playSound: isOtherPerson,
+          sound: "message",
+          source: "thread-websocket",
+        })
       }
 
-      // 3. Update job status if an offer is accepted/updated
       if (['offer_update', 'job_update', 'status_change'].includes(data.type)) {
         queryClient.invalidateQueries({ queryKey: ["threadJob"] });
         queryClient.invalidateQueries({ queryKey: ["threadDetail"] });
+
+        broadcastRealtimeUpdate({
+          type: "action",
+          actionType: data.type,
+          payload: data,
+          playSound: true,
+          sound: "notification",
+          source: "thread-websocket",
+        })
       }
     }
   });
@@ -509,6 +522,14 @@ export default function Thread() {
     }
     return null
   }, [threadData, data?.messages])
+
+  const broadcastRealtimeUpdate = useCallback((detail = {}) => {
+    emitPlatformRealtimeEvent({
+      threadId: id,
+      relatedJobId,
+      ...detail,
+    })
+  }, [id, relatedJobId])
 
   const getApiErrorMessage = (error, fallback) => {
     const responseData = error?.response?.data
@@ -672,6 +693,7 @@ export default function Thread() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["threadJob", relatedJobId] })
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
+      broadcastRealtimeUpdate({ type: "action", actionType: "job_started", source: "thread-mutation" })
       showSuccess("Job is now IN_PROGRESS. You can submit delivery from chat.")
     },
     onError: (error) => {
@@ -694,6 +716,7 @@ export default function Thread() {
       setShowSubmissionForm(false)
       queryClient.invalidateQueries({ queryKey: ["threadJob", relatedJobId] })
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
+      broadcastRealtimeUpdate({ type: "action", actionType: "delivery_submitted", source: "thread-mutation" })
       showSuccess("Delivery submitted. Job status is now DELIVERED.")
     },
     onError: (error) => {
@@ -711,6 +734,7 @@ export default function Thread() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["threadJob", relatedJobId] })
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
+      broadcastRealtimeUpdate({ type: "action", actionType: "job_completed", source: "thread-mutation" })
       const earnedAmount = resolveFreelancerEarnings(jobDetail)
       showSuccess(`Job accepted and completed. Freelancer earnings: ${formatKES(earnedAmount)}.`)
       if (isClientOnJob) {
@@ -744,6 +768,7 @@ export default function Thread() {
       setLatestThreadRating(response?.data?.rating || null)
       setShowRatingForm(false)
       queryClient.invalidateQueries({ queryKey: ["threadJob", relatedJobId] })
+      broadcastRealtimeUpdate({ type: "action", actionType: "freelancer_rated", source: "thread-mutation" })
       if (jobStatus === "DELIVERED") {
         showSuccess(
           response?.data?.created
@@ -828,9 +853,9 @@ export default function Thread() {
     onSuccess: () => {
       setText("")
       setPendingAttachments([])
-      // This is the key change!
       queryClient.invalidateQueries({ queryKey: ["messages", id, sessionKey] })
       queryClient.invalidateQueries({ queryKey: ["threads"] })
+      broadcastRealtimeUpdate({ type: "message:sent", source: "thread-mutation" })
     },
     onError: (err) => {
       console.error("Message send failed:", err)
@@ -844,6 +869,7 @@ export default function Thread() {
       setShowOfferForm(false)
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
       queryClient.invalidateQueries({ queryKey: ["threads"] })
+      broadcastRealtimeUpdate({ type: "action", actionType: "offer_sent", source: "thread-mutation" })
     },
   })
 
@@ -853,6 +879,12 @@ export default function Thread() {
     onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
       queryClient.invalidateQueries({ queryKey: ["threads"] })
+      broadcastRealtimeUpdate({
+        type: "action",
+        actionType: typeof variables?.decision === "string" ? variables.decision : "offer_updated",
+        payload: data,
+        source: "thread-mutation",
+      })
 
       if (data.job_created) {
         const acceptedEmail =
