@@ -5,10 +5,10 @@
  * @module AppContexts
  */
 
-import {createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import httpClient from "../api/httpClient";
-import guestSessionService from "../services/guestSessionService";
+import guestSessionService, { getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../services/guestSessionService";
 import { setAuthSessionCookie, clearAuthSessionCookie } from "../utils/cookies";
 
 const USER_TYPE = {
@@ -17,6 +17,7 @@ const USER_TYPE = {
   ADMIN: 2,
 };
 
+const NotificationContext = createContext(null);
 
 const AuthContext = createContext(null);
 
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
   const isAuthenticated = !!currentUser;
+  const notification = useContext(NotificationContext);
 
   useEffect(() => {
     try {
@@ -75,7 +77,14 @@ export const AuthProvider = ({ children }) => {
 
     const bootstrapGuestSession = async () => {
       try {
-        await guestSessionService.initializeSession();
+        const initialized = await guestSessionService.initializeSession({ suppressThrottleError: true });
+        if (
+          isActive &&
+          initialized?.throttled &&
+          shouldShowGuestSessionThrottleNotice(initialized.retryAt)
+        ) {
+          notification?.showInfo?.(getGuestSessionThrottleMessage(initialized.retryAt));
+        }
       } catch (error) {
         if (isActive) {
           console.error("Failed to bootstrap guest session:", error);
@@ -88,7 +97,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, notification]);
 
   const login = useCallback(async (credentials) => {
     try {
@@ -266,8 +275,6 @@ export const useChat = () => {
   return context;
 };
 
-const NotificationContext = createContext(null);
-
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
@@ -355,11 +362,11 @@ export const useNotification = () => {
 
 export const AppProviders = ({ children }) => {
   return (
-    <AuthProvider>
-      <NotificationProvider>
+    <NotificationProvider>
+      <AuthProvider>
         <ChatProvider>{children}</ChatProvider>
-      </NotificationProvider>
-    </AuthProvider>
+      </AuthProvider>
+    </NotificationProvider>
   );
 };
 

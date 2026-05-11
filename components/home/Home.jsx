@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"
 import Link from "next/link";
-import guestSessionService from "../../services/guestSessionService";
+import { useNotification } from "../../contexts/AppContexts";
+import guestSessionService, { getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../../services/guestSessionService";
 import "./Home.scss";
 
 const Home = () => {
@@ -11,6 +12,7 @@ const Home = () => {
     const [guestSessionKey, setGuestSessionKey] = useState(null);
     const [isRedirecting, setIsRedirecting] = useState(false);
     const router = useRouter();
+    const { showInfo } = useNotification();
 
     const getDashboardPath = (role) => {
         switch (role) {
@@ -51,8 +53,12 @@ const Home = () => {
 
         const createGuestSession = async () => {
             try {
-                const data = await guestSessionService.initializeSession();
+                const data = await guestSessionService.initializeSession({ suppressThrottleError: true });
                 const key = data?.sessionKey;
+
+                if (data?.throttled && shouldShowGuestSessionThrottleNotice(data.retryAt)) {
+                    showInfo(getGuestSessionThrottleMessage(data.retryAt));
+                }
 
                 if (key) {
                     setGuestSessionKey(key);
@@ -64,7 +70,7 @@ const Home = () => {
 
         createGuestSession();
 
-    }, [router]);
+    }, [router, showInfo]);
 
     const isClient = currentUser?.role === "CLIENT";
     const isFreelancer = currentUser?.role === "FREELANCER";

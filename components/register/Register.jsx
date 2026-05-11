@@ -3,7 +3,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import guestSessionService from "../../services/guestSessionService";
+import { useNotification } from "../../contexts/AppContexts";
+import guestSessionService, { getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../../services/guestSessionService";
 import {
   Mail,
   Lock,
@@ -39,6 +40,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
   const [guestSessionKey, setGuestSessionKey] = useState(null);
+  const { showInfo } = useNotification();
 
   const { email, password, password2, first_name, last_name, phone, role } = formData;
 
@@ -51,12 +53,16 @@ const Register = () => {
 
     const createGuestSession = async () => {
       try {
-        const data = await guestSessionService.initializeSession();
+        const data = await guestSessionService.initializeSession({ suppressThrottleError: true });
         const key = data?.sessionKey;
+
+        if (data?.throttled && shouldShowGuestSessionThrottleNotice(data.retryAt)) {
+          showInfo(getGuestSessionThrottleMessage(data.retryAt));
+        }
 
         if (key) {
           setGuestSessionKey(key);
-        } else {
+        } else if (!data?.throttled) {
           console.error("No session key returned:", data);
         }
       } catch (err) {
@@ -66,7 +72,7 @@ const Register = () => {
 
     createGuestSession();
 
-  }, []);
+  }, [showInfo]);
 
   const passwordStrength = useMemo(() => {
     if (!password) return { score: 0, label: "", color: "", percent: 0 };

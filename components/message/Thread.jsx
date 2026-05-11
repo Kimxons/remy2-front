@@ -16,6 +16,7 @@ import { savePendingClientEmailForJob } from "../../utils/clientOnboarding"
 import { useChatWebSocket } from "../../hooks/useChatWebSocket"
 import { useCallback } from "react"
 import { emitPlatformRealtimeEvent } from "../../utils/realtime"
+import { getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../../services/guestSessionService"
 
 const MAX_PENDING_ATTACHMENTS = 5;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -290,11 +291,13 @@ export default function Thread() {
       }
 
       try {
-        const { sessionKey: newKey, guestLabel: newLabel } =
-          await guestSessionService.initializeSession()
+        const initialized = await guestSessionService.initializeSession({ suppressThrottleError: true })
         if (isMounted) {
-          setSessionKey(newKey)
-          setGuestLabel(newLabel)
+          if (initialized?.throttled && shouldShowGuestSessionThrottleNotice(initialized.retryAt)) {
+            showInfo(getGuestSessionThrottleMessage(initialized.retryAt))
+          }
+          setSessionKey(initialized?.sessionKey || null)
+          setGuestLabel(initialized?.guestLabel || null)
           setSessionReady(true)
         }
       } catch (err) {

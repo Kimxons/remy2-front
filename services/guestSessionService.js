@@ -14,6 +14,7 @@ const GUEST_LABEL_KEY = "guestLabel";
 const GUEST_SESSION_EXPIRY = "guestSessionExpiry";
 const CSRF_TOKEN_KEY = "csrfToken";
 const GUEST_SESSION_RETRY_AT_KEY = "guestSessionRetryAt";
+const GUEST_SESSION_NOTICE_KEY = "guestSessionThrottleNoticeAt";
 const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const THREAD_SESSION_KEY_PREFIX = "threadSessionKey:";
 
@@ -57,6 +58,37 @@ const storeRetryAt = (retryAt) => {
   localStorage.setItem(GUEST_SESSION_RETRY_AT_KEY, String(retryAt));
 };
 
+export const getGuestSessionThrottleMessage = (retryAt) => {
+  if (!retryAt) {
+    return "Guest chat startup is temporarily delayed. Please try again shortly.";
+  }
+
+  const retryAfterSeconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
+  const retryAfterMinutes = Math.ceil(retryAfterSeconds / 60);
+
+  if (retryAfterSeconds < 60) {
+    return `Guest chat startup is temporarily delayed. Try again in about ${retryAfterSeconds} seconds.`;
+  }
+
+  return `Guest chat startup is temporarily delayed. Try again in about ${retryAfterMinutes} minute${retryAfterMinutes === 1 ? "" : "s"}.`;
+};
+
+export const shouldShowGuestSessionThrottleNotice = (retryAt) => {
+  if (typeof window === "undefined" || !retryAt) {
+    return true;
+  }
+
+  const normalizedRetryAt = String(retryAt);
+  const lastShownRetryAt = sessionStorage.getItem(GUEST_SESSION_NOTICE_KEY);
+
+  if (lastShownRetryAt === normalizedRetryAt) {
+    return false;
+  }
+
+  sessionStorage.setItem(GUEST_SESSION_NOTICE_KEY, normalizedRetryAt);
+  return true;
+};
+
 const makeThreadStorageKey = (threadId) => threadId ? `${THREAD_SESSION_KEY_PREFIX}${threadId}` : null;
 
 const clearThreadSessionKeysFromStorage = () => {
@@ -90,7 +122,9 @@ export const guestSessionService = {
   /**
    * Initialize a new guest session or retrieve existing one
    */
-  initializeSession: async () => {
+  initializeSession: async (options = {}) => {
+    const suppressThrottleError = Boolean(options.suppressThrottleError);
+
     // 2. CHECK THE LOCK: If a request is already flying, stop this one.
     if (isInitializing) {
       // Wait a tiny bit or return the existing check
@@ -123,6 +157,16 @@ export const guestSessionService = {
 
     const retryAt = getStoredRetryAt();
     if (retryAt) {
+      if (suppressThrottleError) {
+        return {
+          sessionKey: null,
+          guestLabel: guestSessionService.getGuestLabel(),
+          csrfToken: guestSessionService.getCsrfToken(),
+          retryAt,
+          throttled: true,
+        };
+      }
+
       const retryAfterSeconds = Math.max(1, Math.ceil((retryAt - Date.now()) / 1000));
       const throttleError = new Error(`Guest session bootstrap is throttled. Retry in ${retryAfterSeconds} seconds.`);
       throttleError.code = "GUEST_SESSION_THROTTLED";

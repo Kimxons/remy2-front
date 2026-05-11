@@ -5,8 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import moment from "moment"
 import httpClient from "../../api/httpClient"
+import { useNotification } from "../../contexts/AppContexts"
 import { subscribeToPlatformRealtime } from "../../utils/realtime"
-import { guestSessionService } from "../../services/guestSessionService"
+import { guestSessionService, getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../../services/guestSessionService"
 import "./Messages.scss"
 
 const Messages = () => {
@@ -17,6 +18,7 @@ const Messages = () => {
   const [guestSessionKey, setGuestSessionKey] = useState(null)
   const [hasAccessToken, setHasAccessToken] = useState(false)
   const queryClient = useQueryClient()
+  const { showInfo } = useNotification()
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -43,8 +45,11 @@ const Messages = () => {
 
     const ensureGuestSession = async () => {
       try {
-        const initialized = await guestSessionService.initializeSession()
+        const initialized = await guestSessionService.initializeSession({ suppressThrottleError: true })
         if (cancelled) return
+        if (initialized?.throttled && shouldShowGuestSessionThrottleNotice(initialized.retryAt)) {
+          showInfo(getGuestSessionThrottleMessage(initialized.retryAt))
+        }
         setGuestSessionKey(initialized?.sessionKey || guestSessionService.getSessionKey())
       } catch (error) {
         if (!cancelled) {
@@ -58,7 +63,7 @@ const Messages = () => {
     return () => {
       cancelled = true
     }
-  }, [guestSessionKey, hasAccessToken, hasHydrated])
+  }, [guestSessionKey, hasAccessToken, hasHydrated, showInfo])
 
   const currentUserId = currentUser?.id || currentUser?.pk || currentUser?.user_id || null
   const isAuthenticatedUser = Boolean(currentUserId || currentUser?.token || hasAccessToken)
