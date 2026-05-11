@@ -1,15 +1,11 @@
 // 1. THIS IS THE LOCK: It must stay outside the function.
 // It tracks if a guest account request is currently "in flight."
+import { getApiOrigin } from "./apiUrl";
+
 let guestAuthPromise = null;
-const DEFAULT_DEV_API_ORIGIN = "http://127.0.0.1:8000";
 
 const resolveApiOrigin = () => {
-  const configuredBase = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  if (!configuredBase) {
-    return DEFAULT_DEV_API_ORIGIN;
-  }
-
-  return configuredBase.replace(/\/api\/?$/, "");
+  return getApiOrigin();
 };
 
 export const ensureGuestAuth = async () => {

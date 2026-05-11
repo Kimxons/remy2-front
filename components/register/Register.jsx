@@ -5,6 +5,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useNotification } from "../../contexts/AppContexts";
 import guestSessionService, { getGuestSessionThrottleMessage, shouldShowGuestSessionThrottleNotice } from "../../services/guestSessionService";
+import { buildApiUrl } from "../../utils/apiUrl";
 import {
   Mail,
   Lock,
@@ -129,7 +130,7 @@ const Register = () => {
     }
 
     try {
-      const endpoint = "http://127.0.0.1:8000/api/users/onboarding/onboard_freelancer/";
+      const endpoint = buildApiUrl("/api/users/onboarding/onboard_freelancer/");
       const payload = {
         email,
         password,

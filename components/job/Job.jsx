@@ -6,10 +6,11 @@ import { useRouter, useParams } from "next/navigation"
 import httpClient from "../../api/httpClient"
 import { useNotification } from "../../contexts/AppContexts"
 import JobSubmissionForm from "../../components/JobSubmissionForm"
+import { getApiOrigin } from "../../utils/apiUrl"
 import "./Job.scss"
 
 export default function Job() {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
+  const API_BASE_URL = getApiOrigin()
   const { id } = useParams()
   const router = useRouter()
   const queryClient = useQueryClient()

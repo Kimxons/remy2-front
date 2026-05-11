@@ -1,4 +1,5 @@
 import axios from "axios";
+import { buildApiUrl } from "./apiUrl";
 
 const upload = async (file) => {
   const data = new FormData();
@@ -7,7 +8,7 @@ const upload = async (file) => {
 
   try {
     const res = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/image/upload`,
+      buildApiUrl("/image/upload"),
       data
     );
 

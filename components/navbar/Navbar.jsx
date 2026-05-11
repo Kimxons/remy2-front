@@ -7,9 +7,9 @@ import httpClient from "../../api/httpClient";
 import guestSessionService from "../../services/guestSessionService";
 import { clearAuthSessionCookie } from "../../utils/cookies";
 import { subscribeToPlatformRealtime } from "../../utils/realtime";
+import { buildApiUrl } from "../../utils/apiUrl";
 import "./Navbar.scss";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 const NOTIFICATION_POLL_INTERVAL = 60000;
 const NOTIFICATION_RATE_LIMIT_COOLDOWN = 120000;
 
@@ -37,7 +37,7 @@ const Navbar = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/users/me/`, {
+      const response = await fetch(buildApiUrl("/api/users/me/"), {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -91,9 +91,9 @@ const Navbar = () => {
     }
 
     const endpointCandidates = [
-      `${API_BASE}/api/users/dashboard/notifications/`,
-      `${API_BASE}/api/users/notifications/`,
-      `${API_BASE}/api/notifications/`,
+      buildApiUrl("/api/users/dashboard/notifications/"),
+      buildApiUrl("/api/users/notifications/"),
+      buildApiUrl("/api/notifications/"),
     ];
 
     for (const endpoint of endpointCandidates) {

@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import httpClient from "../../api/httpClient"
+import { buildApiUrl } from "../../utils/apiUrl"
 import './Settings.scss';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('account');
@@ -60,7 +59,7 @@ const Settings = () => {
     try {
       setLoading(true);
 
-      const accountRes = await fetch(`${API_BASE}/api/users/settings/account/`, {
+      const accountRes = await fetch(buildApiUrl('/api/users/settings/account/'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
