@@ -3,14 +3,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import PropTypes from "prop-types"
 import httpClient from "../../api/httpClient"
 import chatApi from "../../api/chatApi"
 import ErrorBoundary from "../../components/ErrorBoundary"
 import DashboardStats from "../../components/DashboardStats"
 import MessageCenter from "../../components/MessageCenter"
-import OfferManagement from "../../components/OfferManagement"
 import EmptyState from "../../components/EmptyState"
 import LoadingState from "../../components/LoadingState"
 import { subscribeToPlatformRealtime } from "../../utils/realtime"
@@ -31,11 +30,10 @@ import "./Dashboard.scss"
  * @component
  */
 const Dashboard = () => {
-  const PAYMENT_TRACKING_KEY = "pendingPaymentJobId"
-  const formatKES = (value) =>
-    new Intl.NumberFormat("en-KE", {
+  const formatUSD = (value) =>
+    new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "KES",
+      currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(Number(value || 0))
@@ -124,6 +122,10 @@ const Dashboard = () => {
   // ===== State Management =====
   const [storedUser, setStoredUser] = useState(null)
   const [authResolved, setAuthResolved] = useState(false)
+  const [isPageVisible, setIsPageVisible] = useState(() => {
+    if (typeof document === "undefined") return true
+    return document.visibilityState === "visible"
+  })
 
   const syncStoredUser = useCallback(() => {
     if (typeof window === "undefined") {
@@ -161,6 +163,19 @@ const Dashboard = () => {
     }
   }, [syncStoredUser])
 
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return undefined
+    }
+
+    const handleVisibilityChange = () => {
+      setIsPageVisible(document.visibilityState === "visible")
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+  }, [])
+
   const userRole = storedUser?.role
 
   // Check for token in multiple locations - the token might be stored separately
@@ -189,8 +204,14 @@ const Dashboard = () => {
   const isClient = userRole === "CLIENT"
 
   // ===== Auto-refresh Configuration =====
-  const REFETCH_INTERVAL = 5000 // 5 seconds fallback when no live event is available
+  const REFETCH_INTERVAL = 60000
+  const QUERY_STALE_TIME = 30000
   const MAX_RETRY_ATTEMPTS = 3
+  const shouldPollDashboard = isAuthenticated && isPageVisible
+  const shouldRetryDashboardQuery = (failureCount, error) => {
+    if (error?.response?.status === 429) return false
+    return failureCount < 2
+  }
 
   // ===== Authentication Check =====
   useEffect(() => {
@@ -234,7 +255,7 @@ const Dashboard = () => {
       }
 
       // Auto-retry logic
-      if (retryCount < MAX_RETRY_ATTEMPTS && err.response?.status !== 401) {
+      if (retryCount < MAX_RETRY_ATTEMPTS && err.response?.status !== 401 && err.response?.status !== 429) {
         setTimeout(() => {
           setRetryCount(prev => prev + 1)
         }, 2000 * (retryCount + 1)) // Exponential backoff
@@ -258,8 +279,11 @@ const Dashboard = () => {
     queryKey: ["chatThreads", userRole],
     queryFn: chatApi.getThreads,
     enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
-    refetchInterval: REFETCH_INTERVAL,
-    retry: 2,
+    staleTime: QUERY_STALE_TIME,
+    refetchInterval: shouldPollDashboard ? REFETCH_INTERVAL : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryDashboardQuery,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
       console.error("Threads query error:", error)
@@ -306,8 +330,11 @@ const Dashboard = () => {
       return collected
     },
     enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
-    refetchInterval: REFETCH_INTERVAL,
-    retry: 2,
+    staleTime: QUERY_STALE_TIME,
+    refetchInterval: shouldPollDashboard ? REFETCH_INTERVAL : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryDashboardQuery,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 
@@ -315,46 +342,22 @@ const Dashboard = () => {
     queryKey: ["dashboardUnreadCount", userRole],
     queryFn: chatApi.getUnreadCount,
     enabled: isAuthenticated && !!userRole && userRole !== "GUEST",
-    refetchInterval: REFETCH_INTERVAL,
-    retry: 2,
+    staleTime: QUERY_STALE_TIME,
+    refetchInterval: shouldPollDashboard ? REFETCH_INTERVAL : false,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    retry: shouldRetryDashboardQuery,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
-
-  // ===== Fetch Pending Offers (Freelancers Only) =====
-  const {
-    data: pendingOffersData,
-    isLoading: offersLoading,
-    error: offersError,
-    refetch: refetchOffers
-  } = useQuery({
-    queryKey: ["pendingOffers", userRole],
-    queryFn: chatApi.getPendingOffers,
-    enabled: isAuthenticated && isFreelancer,
-    refetchInterval: REFETCH_INTERVAL,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error("Pending offers query error:", error)
-      if (error.response?.status === 401) {
-        router.push("/login", { replace: true })
-      }
-    }
-  })
-
-  const pendingOffers = useMemo(
-    () => pendingOffersData?.pending_offers || [],
-    [pendingOffersData]
-  )
 
   useEffect(() => {
     return subscribeToPlatformRealtime(() => {
       fetchDashboardSummary()
       refetchThreads()
       refetchJobs()
-      refetchOffers()
       queryClient.invalidateQueries({ queryKey: ["dashboardUnreadCount"] })
     })
-  }, [fetchDashboardSummary, queryClient, refetchJobs, refetchOffers, refetchThreads])
+  }, [fetchDashboardSummary, queryClient, refetchJobs, refetchThreads])
 
   const computedStats = useMemo(() => {
     const fallbackStats = summaryData.stats || {}
@@ -471,82 +474,6 @@ const Dashboard = () => {
       .slice(0, 6)
   }, [allJobs, userRole, storedUser])
 
-  // ===== Offer Accept/Reject Mutation =====
-  const updateOfferMutation = useMutation({
-    mutationFn: ({ threadId, offerId, decision }) =>
-      chatApi.updateOfferStatus(threadId, offerId, decision),
-    onMutate: async () => {
-      // Optimistic update could be added here
-      return { startTime: Date.now() }
-    },
-    onSuccess: async (data, variables, context) => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ["pendingOffers"] })
-      queryClient.invalidateQueries({ queryKey: ["chatThreads"] })
-
-      // Show success notification
-      if (data.job_created) {
-        const message = `✓ Offer ${variables.decision}! Job "${data.job_created.title}" created successfully.`
-        alert(message) // Replace with toast notification in production
-
-        if (data.job_created.payment_required && data.job_created.id) {
-          try {
-            const paymentData = await chatApi.initializeJobPayment(data.job_created.id)
-            if (paymentData.authorizationUrl) {
-              localStorage.setItem(PAYMENT_TRACKING_KEY, String(data.job_created.id))
-              window.location.href = paymentData.authorizationUrl
-              return
-            }
-          } catch (error) {
-            console.error("Payment initialization failed:", error)
-            alert(error.response?.data?.detail || "Failed to initialize payment. Open the accepted offer and use Pay Now to retry.")
-          }
-        }
-      } else {
-        alert(`✓ Offer ${variables.decision} successfully!`)
-      }
-
-      // Refetch summary to update stats
-      fetchDashboardSummary()
-    },
-    onError: (error, variables) => {
-      console.error("Failed to update offer:", error)
-      const errorMessage = error.response?.data?.error || error.message || "Failed to update offer"
-      alert(`✗ Error: ${errorMessage}. Please try again.`)
-    },
-  })
-
-  // ===== Offer Handlers =====
-  const handleAcceptOffer = useCallback((offerId, threadId) => {
-    if (!offerId || !threadId) {
-      console.error("Missing offerId or threadId")
-      return
-    }
-
-    if (window.confirm("Are you sure you want to accept this offer? This will create a job.")) {
-      updateOfferMutation.mutate({
-        threadId,
-        offerId,
-        decision: "accepted",
-      })
-    }
-  }, [updateOfferMutation])
-
-  const handleRejectOffer = useCallback((offerId, threadId) => {
-    if (!offerId || !threadId) {
-      console.error("Missing offerId or threadId")
-      return
-    }
-
-    if (window.confirm("Are you sure you want to reject this offer?")) {
-      updateOfferMutation.mutate({
-        threadId,
-        offerId,
-        decision: "rejected",
-      })
-    }
-  }, [updateOfferMutation])
-
   // ===== Notification Helpers =====
   const getNoteClass = useCallback((note) => {
     if (note.type === 'message') return 'message'
@@ -599,6 +526,26 @@ const Dashboard = () => {
 
   const { notifications } = summaryData
   const jobsToRender = dashboardJobsForRole
+  const overviewItems = [
+    {
+      key: "active",
+      label: "Active",
+      value: computedStats.activeOrders,
+      meta: `${computedStats.completed} completed`,
+    },
+    {
+      key: "value",
+      label: isClient ? "Spend" : "Earnings",
+      value: formatUSD(computedStats.earnings),
+      meta: computedStats.avgResponseTime === "N/A" ? "No response data" : `Avg. response ${computedStats.avgResponseTime}`,
+    },
+    {
+      key: "inbox",
+      label: "Inbox",
+      value: computedStats.unreadMessages,
+      meta: `${recentThreads.length} recent threads`,
+    },
+  ]
 
   // ===== Main Render =====
   return (
@@ -607,21 +554,17 @@ const Dashboard = () => {
       onReset={() => window.location.reload()}
     >
       <div className="dashboard">
-        {/* Header */}
-        <header className="dashboard-header">
-          <div className="header-content">
-            <div className="header-text">
-              <h1 className="dashboard-title">Welcome back, {userName}. Let’s make progress today.</h1>
-              <p className="dashboard-subtitle">
-                {isClient
-                  ? "Launch your next request in minutes and track every deliverable from one place."
-                  : "Respond faster, close more offers, and keep your active work moving forward."}
-              </p>
-            </div>
+        <section className="overview-section" aria-label="Dashboard overview">
+          <div className="overview-grid">
+            {overviewItems.map((item) => (
+              <article key={item.key} className="overview-item">
+                <span className="overview-label">{item.label}</span>
+                <strong className="overview-value">{item.value}</strong>
+                <span className="overview-meta">{item.meta}</span>
+              </article>
+            ))}
           </div>
-        </header>
-
-        {/* Stats Section */}
+        </section>
 
         {!isClient && (
           <section className="stats-section">
@@ -629,7 +572,6 @@ const Dashboard = () => {
           </section>
         )}
 
-        {/* Recent Activity / Notifications */}
         <section className="notifications-section">
           <div className="section-header">
             <h2 className="section-title">Recent Activity</h2>
@@ -671,7 +613,6 @@ const Dashboard = () => {
           )}
         </section>
 
-        {/* Messages Section */}
         <section className="messages-section">
           <div className="section-header">
             <h2 className="section-title">Recent Messages</h2>
@@ -701,40 +642,6 @@ const Dashboard = () => {
           )}
         </section>
 
-        {/* Pending Offers Section (Freelancers Only) */}
-        {isFreelancer && (
-          <section className="offers-section">
-            <div className="section-header">
-              <h2 className="section-title">
-                Pending Offers
-                {pendingOffers.length > 0 && (
-                  <span className="section-badge">{pendingOffers.length}</span>
-                )}
-              </h2>
-            </div>
-
-            <ErrorBoundary fallbackMessage="Failed to load offers">
-              <OfferManagement
-                offers={pendingOffers}
-                isLoading={offersLoading}
-                onAccept={handleAcceptOffer}
-                onReject={handleRejectOffer}
-                isProcessing={updateOfferMutation.isPending}
-              />
-            </ErrorBoundary>
-
-            {offersError && (
-              <div className="section-error">
-                <p>Failed to load offers</p>
-                <button onClick={() => refetchOffers()} className="retry-link">
-                  Retry
-                </button>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Recent Jobs/Orders Section */}
         <section className="jobs-section">
           <div className="section-header">
             <h2 className="section-title">
@@ -760,7 +667,7 @@ const Dashboard = () => {
                   <p className="job-subject">{job.subject?.name || 'N/A'}</p>
                   <div className="job-meta">
                     <span className="job-price">
-                      {formatKES(job.price ?? job.total_amount ?? 0)}
+                      {formatUSD(job.price ?? job.total_amount ?? 0)}
                     </span>
                     <span className="job-deadline">
                       {job.deadline
@@ -768,17 +675,12 @@ const Dashboard = () => {
                         : `Updated: ${new Date(job.updated_at || job.created_at || Date.now()).toLocaleDateString()}`}
                     </span>
                   </div>
-                  {job.id && (
-                    <Link href={`/orders/${job.id}`} className="job-view-btn">
-                      Open Details
-                    </Link>
-                  )}
                 </div>
               ))}
             </div>
           ) : (
             <EmptyState
-              icon="job"
+              icon="briefcase"
               title={isClient ? "No orders yet" : "No active tasks"}
               message={
                 isClient
@@ -791,8 +693,7 @@ const Dashboard = () => {
           )}
         </section>
 
-        {/* Auto-refresh indicator */}
-        {(threadsLoading || offersLoading) && summaryData.timestamp && (
+        {threadsLoading && summaryData.timestamp && (
           <div className="auto-refresh-indicator">
             <span className="refresh-spinner"></span>
             Refreshing...

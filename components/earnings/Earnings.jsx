@@ -5,15 +5,17 @@ import httpClient from "../../api/httpClient"
 import moment from "moment"
 import "./Earnings.scss"
 
-const formatKES = (amount, { withDecimals = true } = {}) => {
+const formatUSD = (amount, { withDecimals = true } = {}) => {
   const value = Number(amount) || 0
-  return `KES ${value.toLocaleString("en-KE", {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: withDecimals ? 2 : 0,
     maximumFractionDigits: withDecimals ? 2 : 0,
-  })}`
+  }).format(value)
 }
 
-const MIN_WITHDRAWAL_KES = 300
+const MIN_WITHDRAWAL_USD = 300
 
 const Earnings = () => {
   const currentUser = useMemo(() => {
@@ -148,8 +150,8 @@ const Earnings = () => {
       return
     }
 
-    if (normalizedAmount < MIN_WITHDRAWAL_KES) {
-      setWithdrawError(`Minimum withdrawal amount is KES ${MIN_WITHDRAWAL_KES}.`)
+    if (normalizedAmount < MIN_WITHDRAWAL_USD) {
+      setWithdrawError(`Minimum withdrawal amount is USD ${MIN_WITHDRAWAL_USD}.`)
       return
     }
 
@@ -194,7 +196,7 @@ const Earnings = () => {
     try {
       setIsSubmittingWithdrawal(true)
       // This would call the withdrawal endpoint
-      alert(`Withdrawal request of ${formatKES(normalizedAmount)} via ${withdrawalMethod} submitted successfully!`)
+      alert(`Withdrawal request of ${formatUSD(normalizedAmount)} via ${withdrawalMethod} submitted successfully!`)
       handleCloseWithdrawModal()
     } catch (err) {
       setWithdrawError(err.response?.data?.detail || "Failed to process withdrawal.")
@@ -281,30 +283,30 @@ const Earnings = () => {
 
             <form onSubmit={handleWithdraw} className="withdraw-form">
               <p className="modal-note">
-                Withdraw your available balance instantly. Minimum cash-out is KES {MIN_WITHDRAWAL_KES}.
+                Withdraw your available balance instantly. Minimum cash-out is USD {MIN_WITHDRAWAL_USD}.
               </p>
               {withdrawError && <p className="modal-error">{withdrawError}</p>}
               <div className="balance-info">
                 <span className="balance-label">Available Balance</span>
-                <span className="balance-value">{formatKES(stats.availableBalance)}</span>
+                <span className="balance-value">{formatUSD(stats.availableBalance)}</span>
               </div>
 
               <div className="form-group">
                 <label htmlFor="amount">Amount to Withdraw</label>
                 <div className="input-with-prefix">
-                  <span className="prefix">KES</span>
+                  <span className="prefix">USD</span>
                   <input
                     type="number"
                     id="amount"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
-                    min={MIN_WITHDRAWAL_KES}
+                    min={MIN_WITHDRAWAL_USD}
                     max={stats.availableBalance}
                     required
                   />
                 </div>
-                <span className="input-hint">Minimum withdrawal: KES {MIN_WITHDRAWAL_KES}</span>
+                <span className="input-hint">Minimum withdrawal: USD {MIN_WITHDRAWAL_USD}</span>
               </div>
 
               <div className="form-group">
@@ -406,7 +408,7 @@ const Earnings = () => {
                 <button
                   type="submit"
                   className="btn-submit"
-                  disabled={isSubmittingWithdrawal || Number(stats.availableBalance) < MIN_WITHDRAWAL_KES}
+                  disabled={isSubmittingWithdrawal || Number(stats.availableBalance) < MIN_WITHDRAWAL_USD}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -429,7 +431,7 @@ const Earnings = () => {
           </h1>
           <p className="hero-subtitle">Track payouts, optimize delivery speed, and cash out with confidence.</p>
           <p className="hero-proof">
-            {formatKES(stats.availableBalance)} ready to withdraw
+            {formatUSD(stats.availableBalance)} ready to withdraw
           </p>
         </div>
       </div>
@@ -447,21 +449,21 @@ const Earnings = () => {
             <span className="balance-label">Available Balance</span>
           </div>
           <div className="balance-amount">
-            {formatKES(stats.availableBalance)}
+            {formatUSD(stats.availableBalance)}
           </div>
           <p className="balance-helper">Available now for withdrawal.</p>
           <button
             type="button"
             onClick={handleOpenWithdrawModal}
             className="btn-withdraw"
-            disabled={Number(stats.availableBalance) < MIN_WITHDRAWAL_KES}
+            disabled={Number(stats.availableBalance) < MIN_WITHDRAWAL_USD}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
               <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            {Number(stats.availableBalance) < MIN_WITHDRAWAL_KES ? `Min KES ${MIN_WITHDRAWAL_KES} Required` : "Withdraw Funds"}
+            {Number(stats.availableBalance) < MIN_WITHDRAWAL_USD ? `Min USD ${MIN_WITHDRAWAL_USD} Required` : "Withdraw Funds"}
           </button>
         </div>
 
@@ -476,7 +478,7 @@ const Earnings = () => {
             <span className="balance-label">Pending</span>
           </div>
           <div className="balance-amount">
-            {formatKES(stats.pendingBalance)}
+            {formatUSD(stats.pendingBalance)}
           </div>
         </div>
 
@@ -491,7 +493,7 @@ const Earnings = () => {
             <span className="balance-label">Total Earned</span>
           </div>
           <div className="balance-amount">
-            {formatKES(stats.totalEarnings)}
+            {formatUSD(stats.totalEarnings)}
           </div>
         </div>
       </div>
@@ -509,7 +511,7 @@ const Earnings = () => {
           </div>
           <div className="stat-content">
             <span className="stat-label">This Week</span>
-            <span className="stat-value">{formatKES(stats.weekEarnings, { withDecimals: false })}</span>
+            <span className="stat-value">{formatUSD(stats.weekEarnings, { withDecimals: false })}</span>
           </div>
         </div>
 
@@ -524,7 +526,7 @@ const Earnings = () => {
           </div>
           <div className="stat-content">
             <span className="stat-label">This Month</span>
-            <span className="stat-value">{formatKES(stats.monthEarnings, { withDecimals: false })}</span>
+            <span className="stat-value">{formatUSD(stats.monthEarnings, { withDecimals: false })}</span>
           </div>
         </div>
 
@@ -549,7 +551,7 @@ const Earnings = () => {
           </div>
           <div className="stat-content">
             <span className="stat-label">Average/Job</span>
-            <span className="stat-value">{formatKES(stats.averagePerJob, { withDecimals: false })}</span>
+            <span className="stat-value">{formatUSD(stats.averagePerJob, { withDecimals: false })}</span>
           </div>
         </div>
       </div>
@@ -631,7 +633,7 @@ const Earnings = () => {
               </div>
 
               <div className="earning-amount">
-                <span className="amount-value">+{formatKES(job.total_amount, { withDecimals: false })}</span>
+                <span className="amount-value">+{formatUSD(job.total_amount, { withDecimals: false })}</span>
                 <span className="amount-status">Ready for payout</span>
               </div>
             </div>

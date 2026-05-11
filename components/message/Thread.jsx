@@ -217,7 +217,13 @@ export default function Thread() {
   const { isAuthenticated, currentUser } = useAuth()
   const { showSuccess, showError, showInfo } = useNotification()
 
-  const formatKES = (value) => `KES ${Number(value || 0).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatUSD = (value) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value || 0))
   const resolveFreelancerEarnings = (jobData) => {
     const candidates = [
       jobData?.freelancer_earnings,
@@ -768,7 +774,7 @@ export default function Thread() {
       queryClient.invalidateQueries({ queryKey: ["messages", id] })
       broadcastRealtimeUpdate({ type: "action", actionType: "job_completed", source: "thread-mutation" })
       const earnedAmount = resolveFreelancerEarnings(jobDetail)
-      showSuccess(`Job accepted and completed. Freelancer earnings: ${formatKES(earnedAmount)}.`)
+      showSuccess(`Job accepted and completed. Freelancer earnings: ${formatUSD(earnedAmount)}.`)
       if (isClientOnJob) {
         showInfo("Freelancer has been notified. Any open dispute was auto-resolved as RESOLVED_PAID.")
       }
@@ -822,7 +828,7 @@ export default function Thread() {
     if (typeof window === "undefined" || localStorage.getItem(storageKey)) return
 
     const earnedAmount = resolveFreelancerEarnings(jobDetail)
-    showSuccess(`Job accepted by client. You earned ${formatKES(earnedAmount)}.`)
+    showSuccess(`Job accepted by client. You earned ${formatUSD(earnedAmount)}.`)
     showInfo("Project status updated to CLIENT_COMPLETED.")
     localStorage.setItem(storageKey, "1")
   }, [jobDetail, isFreelancerOnJob, jobStatus, showInfo, showSuccess])

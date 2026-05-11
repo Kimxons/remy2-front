@@ -5,6 +5,14 @@ import httpClient from "../../api/httpClient";
 import moment from "moment";
 import "./Payments.scss";
 
+const formatUSD = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
 const Payments = () => {
   const currentUser = JSON.parse(localStorage.getItem("currentUser"));
   const [payments, setPayments] = useState([]);
@@ -44,7 +52,7 @@ const Payments = () => {
             {payments.map((p) => (
               <tr key={p.id}>
                 <td>{p.method}</td>
-                <td>${p.amount}</td>
+                <td>{formatUSD(p.amount)}</td>
                 <td>{p.status}</td>
                 <td>{p.reference}</td>
                 <td>{moment(p.date).format("LL")}</td>

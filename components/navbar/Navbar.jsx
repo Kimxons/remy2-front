@@ -10,6 +10,8 @@ import { subscribeToPlatformRealtime } from "../../utils/realtime";
 import "./Navbar.scss";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const NOTIFICATION_POLL_INTERVAL = 60000;
+const NOTIFICATION_RATE_LIMIT_COOLDOWN = 120000;
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -23,6 +25,7 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const liveRefreshTimeoutRef = useRef(null);
+  const notificationCooldownUntilRef = useRef(0);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -79,6 +82,14 @@ const Navbar = () => {
       return;
     }
 
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+      return;
+    }
+
+    if (Date.now() < notificationCooldownUntilRef.current) {
+      return;
+    }
+
     const endpointCandidates = [
       `${API_BASE}/api/users/dashboard/notifications/`,
       `${API_BASE}/api/users/notifications/`,
@@ -96,6 +107,10 @@ const Navbar = () => {
 
         if (response.status === 404 || response.status === 405) {
           continue;
+        }
+        if (response.status === 429) {
+          notificationCooldownUntilRef.current = Date.now() + NOTIFICATION_RATE_LIMIT_COOLDOWN;
+          return;
         }
         if (!response.ok) {
           return;
@@ -118,6 +133,7 @@ const Navbar = () => {
         setUnreadNotifications(
           notifications.reduce((count, item) => (item?.is_read === false ? count + 1 : count), 0)
         );
+        notificationCooldownUntilRef.current = 0;
         return;
       } catch (error) {
         const isNetworkError =
@@ -166,8 +182,19 @@ const Navbar = () => {
 
   useEffect(() => {
     fetchUnreadNotifications();
-    const interval = window.setInterval(fetchUnreadNotifications, 5000);
-    return () => window.clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchUnreadNotifications();
+      }
+    };
+
+    const interval = window.setInterval(fetchUnreadNotifications, NOTIFICATION_POLL_INTERVAL);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [fetchUnreadNotifications]);
 
   useEffect(() => {

@@ -157,7 +157,8 @@
 ========================= */
 
 .btn-action-base {
-  flex: 1; /* FIX: proper side-by-side layout */
+  flex: 1;
+  /* FIX: proper side-by-side layout */
   height: 48px;
   display: flex;
   align-items: center;
@@ -279,10 +280,19 @@
 ========================= */
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

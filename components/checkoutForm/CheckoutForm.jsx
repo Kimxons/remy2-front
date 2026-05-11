@@ -4,6 +4,14 @@ import React, { useState } from "react";
 import httpClient from "../../api/httpClient";
 import { CreditCard, ShieldCheck, Loader2, Mail } from "lucide-react";
 
+const formatUSD = (value) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
 const CheckoutForm = ({ jobId, amountUSD }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -70,7 +78,7 @@ const CheckoutForm = ({ jobId, amountUSD }) => {
 
         <div className="flex justify-between items-center bg-gray-50 p-4 rounded-lg mb-6">
           <span className="text-gray-600">Total Amount:</span>
-          <span className="text-2xl font-bold text-blue-600">${amountUSD}</span>
+          <span className="text-2xl font-bold text-blue-600">{formatUSD(amountUSD)}</span>
         </div>
 
         <button

@@ -4,7 +4,7 @@ import Link from "next/link"
 import OfferCard from "./OfferCard"
 import EmptyState from "./EmptyState"
 import LoadingState from "./LoadingState"
-import "./OfferManagement.scss" 
+import "./OfferManagement.scss"
 
 const OfferManagement = ({
   offers,
@@ -13,8 +13,8 @@ const OfferManagement = ({
   onReject,
   isProcessing = false
 }) => {
-  const [filterStatus, setFilterStatus] = useState("pending") 
-  const [sortBy, setSortBy] = useState("newest") 
+  const [filterStatus, setFilterStatus] = useState("pending")
+  const [sortBy, setSortBy] = useState("newest")
 
   /**
    * Updated Formatter: Uses US locale and USD currency
@@ -69,11 +69,11 @@ const OfferManagement = ({
       ?.filter(o => o.offer_status === "pending")
       .reduce((sum, o) => sum + parseFloat(o.offer_price || 0), 0) || 0
 
-    return { 
-        pending, 
-        totalValue,
-        accepted: offers?.filter(o => o.offer_status === "accepted").length || 0,
-        rejected: offers?.filter(o => o.offer_status === "rejected").length || 0,
+    return {
+      pending,
+      totalValue,
+      accepted: offers?.filter(o => o.offer_status === "accepted").length || 0,
+      rejected: offers?.filter(o => o.offer_status === "rejected").length || 0,
     }
   }, [offers])
 

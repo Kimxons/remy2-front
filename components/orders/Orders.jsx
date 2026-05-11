@@ -11,13 +11,44 @@ const PAYMENT_TRACKING_KEY = "pendingPaymentJobId"
 const CONFIRMED_PAID_JOBS_KEY = "confirmedPaidJobIds"
 const PAYMENT_SUCCESS_STATUSES = ["PAID", "ASSIGNED", "IN_PROGRESS", "DELIVERED", "CLIENT_COMPLETED"]
 const PAYMENT_PENDING_STATUSES = ["PROVISIONAL", "PENDING_PAYMENT"]
-const formatKES = (value) =>
-  new Intl.NumberFormat("en-KE", {
+const formatUSD = (value) =>
+  new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "KES",
+    currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(value) || 0)
+
+const toTitleCase = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+
+const getDisplayStatus = (status, fallbackLabel) => {
+  if (fallbackLabel) return fallbackLabel
+  return toTitleCase(String(status || "Unknown").replace(/_/g, " "))
+}
+
+const getStatusStage = (status) => {
+  const stages = {
+    PROVISIONAL: { step: 1, label: "Scoped" },
+    PENDING_PAYMENT: { step: 1, label: "Awaiting payment" },
+    PAYMENT_FAILED: { step: 1, label: "Payment retry" },
+    PAID: { step: 2, label: "Confirmed" },
+    ASSIGNED: { step: 2, label: "Assigned" },
+    IN_PROGRESS: { step: 3, label: "In progress" },
+    DELIVERED: { step: 4, label: "Delivered" },
+    CLIENT_COMPLETED: { step: 5, label: "Closed" },
+    DISPUTE_OPEN: { step: 3, label: "Needs attention" },
+    DISPUTE_RESOLVED: { step: 5, label: "Resolved" },
+    CANCELLED: { step: 5, label: "Closed" },
+  }
+
+  return stages[status] || { step: 2, label: "Active" }
+}
 
 const getConfirmedPaidJobIds = () => {
   if (typeof window === "undefined") return new Set()
@@ -65,6 +96,8 @@ const Orders = ({ initialSearchParams = {} }) => {
   const [sortBy, setSortBy] = useState('newest')
   const [paymentNotice, setPaymentNotice] = useState(null)
   const isClient = String(currentUser?.role || currentUser?.user?.role || "").toUpperCase() === "CLIENT"
+  const showPaymentAction = (job) =>
+    isClient && ['PROVISIONAL', 'PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(job.status)
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -101,7 +134,7 @@ const Orders = ({ initialSearchParams = {} }) => {
   }
 
   const getStatusIcon = (status) => {
-    switch(status) {
+    switch (status) {
       case 'PROVISIONAL':
       case 'PENDING_PAYMENT':
         return (
@@ -282,23 +315,47 @@ const Orders = ({ initialSearchParams = {} }) => {
     completed: jobs.filter(j => j.status === 'CLIENT_COMPLETED').length,
     totalValue: isClient
       ? jobs
-          .filter((j) => PAYMENT_SUCCESS_STATUSES.includes(j.status))
-          .reduce((sum, j) => sum + Number(j.total_amount || j.price || 0), 0)
+        .filter((j) => PAYMENT_SUCCESS_STATUSES.includes(j.status))
+        .reduce((sum, j) => sum + Number(j.total_amount || j.price || 0), 0)
       : jobs
-          .filter((j) => j.status === "CLIENT_COMPLETED")
-          .reduce((sum, j) => {
-            const earned = Number(
-              j.freelancer_earnings ??
-              j.freelancer_payout_amount ??
-              j.freelancer_amount ??
-              j.amount_to_freelancer ??
-              j.net_amount ??
-              j.total_amount ??
-              0
-            )
-            return sum + (Number.isFinite(earned) ? earned : 0)
-          }, 0),
+        .filter((j) => j.status === "CLIENT_COMPLETED")
+        .reduce((sum, j) => {
+          const earned = Number(
+            j.freelancer_earnings ??
+            j.freelancer_payout_amount ??
+            j.freelancer_amount ??
+            j.amount_to_freelancer ??
+            j.net_amount ??
+            j.total_amount ??
+            0
+          )
+          return sum + (Number.isFinite(earned) ? earned : 0)
+        }, 0),
   }), [jobs, isClient])
+
+  const highlightedJob = filteredAndSortedJobs[0] || null
+  const overviewItems = [
+    {
+      key: "pulse",
+      label: "Current pulse",
+      value: formatUSD(stats.totalValue),
+      meta: stats.pending > 0
+        ? `${stats.pending} order${stats.pending === 1 ? " is" : "s are"} waiting for a next step`
+        : "No stalled orders",
+    },
+    {
+      key: "focus",
+      label: "Focus",
+      value: highlightedJob ? getDisplayStatus(highlightedJob.status, highlightedJob.status_display) : "No active order",
+      meta: highlightedJob ? `${stats.active} active in queue` : "Queue is clear",
+    },
+    {
+      key: "brief",
+      label: "Latest brief",
+      value: highlightedJob ? (highlightedJob.title || `Order #${String(highlightedJob.id || "").slice(0, 8)}`) : "No recent order",
+      meta: highlightedJob?.created_at ? moment(highlightedJob.created_at).fromNow() : "Waiting for activity",
+    },
+  ]
 
   if (loading) {
     return (
@@ -330,15 +387,15 @@ const Orders = ({ initialSearchParams = {} }) => {
 
   return (
     <div className="orders-page">
-      {/* Hero Header */}
-      <div className="orders-hero">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            My Orders
-          </h1>
-          <p className="hero-subtitle">Track progress, payments, and delivery timelines in one streamlined view.</p>
-        </div>
-      </div>
+      <section className="orders-overview" aria-label="Orders overview">
+        {overviewItems.map((item) => (
+          <article key={item.key} className="overview-item">
+            <span className="overview-label">{item.label}</span>
+            <strong className="overview-value">{item.value}</strong>
+            <span className="overview-meta">{item.meta}</span>
+          </article>
+        ))}
+      </section>
 
       {paymentNotice && (
         <div className={`status-banner ${paymentNotice.type || "info"}`} role="status">
@@ -346,7 +403,6 @@ const Orders = ({ initialSearchParams = {} }) => {
         </div>
       )}
 
-      {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card stat-total">
           <div className="stat-icon">
@@ -395,72 +451,75 @@ const Orders = ({ initialSearchParams = {} }) => {
           </div>
           <div className="stat-content">
             <span className="stat-label">{isClient ? "Total Spent" : "Total Earnings"}</span>
-            <span className="stat-value">{formatKES(stats.totalValue)}</span>
+            <span className="stat-value">{formatUSD(stats.totalValue)}</span>
           </div>
         </div>
       </div>
 
-      {/* Controls Bar */}
       <div className="controls-bar">
-        <div className="search-box">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-          </svg>
-          <input
-            type="text"
-            placeholder="Search orders by title, description, or user..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="btn-clear-search" onClick={() => setSearchQuery('')}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          )}
-        </div>
+        <div className="controls-main">
+          <div className="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search orders by title, description, or user..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="btn-clear-search" onClick={() => setSearchQuery('')}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
 
-        <div className="filter-group">
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All
-          </button>
-          <button
-            className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
-            onClick={() => setFilter('pending')}
-          >
-            Pending
-          </button>
-          <button
-            className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
-            onClick={() => setFilter('active')}
-          >
-            Active
-          </button>
-          <button
-            className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
-            onClick={() => setFilter('completed')}
-          >
-            Completed
-          </button>
-        </div>
+          <div className="controls-actions">
+            <div className="filter-group">
+              <button
+                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                All Orders
+              </button>
+              <button
+                className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
+                onClick={() => setFilter('pending')}
+              >
+                Payment Queue
+              </button>
+              <button
+                className={`filter-btn ${filter === 'active' ? 'active' : ''}`}
+                onClick={() => setFilter('active')}
+              >
+                In Motion
+              </button>
+              <button
+                className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
+                onClick={() => setFilter('completed')}
+              >
+                Archived Wins
+              </button>
+            </div>
 
-        <div className="sort-dropdown">
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="amount-high">Amount: High to Low</option>
-            <option value="amount-low">Amount: Low to High</option>
-          </select>
+            <div className="sort-dropdown">
+              <label htmlFor="orders-sort">Sort</label>
+              <select id="orders-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="amount-high">Amount: High to Low</option>
+                <option value="amount-low">Amount: Low to High</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Orders Grid */}
       {filteredAndSortedJobs.length === 0 ? (
         <div className="empty-state">
           <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -472,8 +531,8 @@ const Orders = ({ initialSearchParams = {} }) => {
             {searchQuery
               ? `No orders match "${searchQuery}"`
               : filter !== 'all'
-              ? `You don't have any ${filter} orders yet.`
-              : "You don't have any orders yet."}
+                ? `You don't have any ${filter} orders yet.`
+                : "You don't have any orders yet."}
           </p>
           {(searchQuery || filter !== 'all') && (
             <button
@@ -490,13 +549,18 @@ const Orders = ({ initialSearchParams = {} }) => {
       ) : (
         <div className="orders-grid">
           {filteredAndSortedJobs.map((job) => (
-            <div key={job.id} className="order-card">
+            <article key={job.id} className="order-card">
               <div className="order-card-header">
                 <div className="order-title-section">
-                  <h3 className="order-title">{job.title}</h3>
+                  <div>
+                    <h3 className="order-title">{job.title}</h3>
+                    <p className="order-subtitle">
+                      #{String(job.id || "").slice(0, 8) || "Draft"} · {job.subject?.name || ""}
+                    </p>
+                  </div>
                   <span className={`status-badge ${getStatusBadgeClass(job.status)}`}>
                     {getStatusIcon(job.status)}
-                    {job.status_display || job.status}
+                    {getDisplayStatus(job.status, job.status_display)}
                   </span>
                 </div>
               </div>
@@ -516,7 +580,7 @@ const Orders = ({ initialSearchParams = {} }) => {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                       <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    <span>{currentUser?.id === job.client_id ? job.freelancer_username : job.client_username}</span>
+                    <span>{isClient ? "Freelancer" : "Client"}: {currentUser?.id === job.client_id ? job.freelancer_username : job.client_username}</span>
                   </div>
 
                   <div className="meta-item">
@@ -538,16 +602,27 @@ const Orders = ({ initialSearchParams = {} }) => {
                       <span>{job.delivery_time_days} days</span>
                     </div>
                   )}
+
+                  <div className="meta-item emphasis">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 12h18"></path>
+                      <path d="M12 3v18"></path>
+                    </svg>
+                    <span>{getStatusStage(job.status).label}</span>
+                  </div>
                 </div>
 
                 <div className="order-amount">
-                  <span className="amount-label">Total Amount</span>
-                  <span className="amount-value">{formatKES(job.total_amount)}</span>
+                  <div>
+                    <span className="amount-label">Total Amount</span>
+                    <span className="amount-note">Created {moment(job.created_at).fromNow()}</span>
+                  </div>
+                  <span className="amount-value">{formatUSD(job.total_amount || job.price)}</span>
                 </div>
               </div>
 
               <div className="order-card-footer">
-                {['PROVISIONAL', 'PENDING_PAYMENT', 'PAYMENT_FAILED'].includes(job.status) && (
+                {showPaymentAction(job) && (
                   <button className="btn-action btn-pay" onClick={() => handlePayNow(job)}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
@@ -565,7 +640,7 @@ const Orders = ({ initialSearchParams = {} }) => {
                   </svg>
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}

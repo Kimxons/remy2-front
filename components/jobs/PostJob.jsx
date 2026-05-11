@@ -61,7 +61,6 @@ export default function PostJob() {
         >
           <option>USD</option>
           <option>EUR</option>
-          <option>KES</option>
         </select>
         <button disabled={isLoading}>
           {isLoading ? "Saving…" : "Create job"}
