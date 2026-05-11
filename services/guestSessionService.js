@@ -329,7 +329,7 @@ export const guestSessionService = {
     }
 
     try {
-      const data = await chatApi.getGuestThreads(sessionKey);
+      const data = await chatApi.getGuestThreads();
       return data.results || [];
     } catch (error) {
       console.error("Failed to get guest threads:", error);

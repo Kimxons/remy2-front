@@ -25,7 +25,7 @@ const chatApi = {
   },
 
   getGuestThreads: async () => {
-    const response = await httpClient.get("/chat/guest-threads/", {
+    const response = await httpClient.get("/chat/threads/", {
       skipAuthHeader: true,
     });
     return response.data;
